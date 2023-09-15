@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Vehicle Positions{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=vehicle.feed_id)}}">
+    Back
+</a>
+<hr>
+
+<h1> GTFS_ID: {{vehicle.vehicle_gtfs_id}}</h1>
+<table>
+    <thead>
+    <th>Latitude</th>
+    <th>Longitude</th>
+    <th>Occupancy Status</th>
+    <th>Time Recorded</th>
+    </thead>
+    {% for d in data %}
+    <tr>
+        <td>{{d.lat }}</td>
+        <td>{{d.lon}}</td>
+        <td>{{d.occupancy_status}}</td>
+        <td>{{d.time_recorded}}</td>
+    </tr>
+    {% if not loop.last %}
+    {% endif %}
+    {% endfor %}
+</table>
+<hr>
+
+{% endblock %}

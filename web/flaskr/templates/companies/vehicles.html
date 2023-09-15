@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Vehicles{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<h1> {{company}}({{feed_id}}) | {{timezone}}</h1>
+<hr>
+{% for v in vehicles %}
+<article class="data">
+
+    <h3>{{ v.vehicle_gtfs_id }}</h3>
+
+    <div class="grid-container">
+        <a class="action grid-item"
+           href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=feed_id, vehicle_id=v.id)}}">
+            Vehicle Position Data </a>
+        <a class="action grid-item"
+           href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=feed_id, vehicle_id=v.id)}}">
+            Trip Update Data </a>
+    </div>
+</article>
+{% if not loop.last %}
+<hr>
+{% endif %}
+{% endfor %}
+
+
+{% endblock %}

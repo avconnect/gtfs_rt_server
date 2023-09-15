@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Vehicles{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<h1>Company</h1>
+<a class="action" href="{{ url_for('companies.add_company') }}">Add Company</a>
+<hr>
+{% for feed in feeds %}
+<article class="companies">
+    <div>
+        <h2>
+            <a class="action"
+               href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">
+                {{feed.company_name}}
+            </a>
+        </h2>
+    </div>
+</article>
+{% if not loop.last %}
+<hr>
+{% endif %}
+{% endfor %}
+<hr>
+{% endblock %}

@@ -1,0 +1,12 @@
+<!doctype html>
+<title>{% block title %}gtfs_rt Server{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<h1>gtfs_rt Server</h1>
+<section class="content">
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+    {% endfor %}
+    <a class="action" href="{{ url_for('companies.index') }}"> Home</a>
+    {% block content %}{% endblock %}
+
+</section>

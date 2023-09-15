@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Trip Updates{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=vehicle.feed_id)}}">
+    Back
+</a>
+<hr>
+<div>
+    <input type="text" id="trip_id_filter" onkeyup="filter()" placeholder="Search for trips" title="Filter Trip IDs">
+    <input type="text" id="trip_day_filter" onkeyup="filter()" placeholder="Search for trips by day"
+           title="Filter Trip Day">
+
+</div>
+<h1> GTFS ID: {{vehicle.vehicle_gtfs_id}}</h1>
+<table id="trip_table">
+    <thead>
+    <th>Trip ID</th>
+    <th>Time Recorded(UTC)</th>
+    <th>Start Day(Local)</th>
+    <th>Trips</th>
+    </thead>
+    {% for d in data %}
+    <tr>
+        <td id="trip_id">{{d.trip.trip_id}}</td>
+        <td>{{d.trip.time_recorded}}</td>
+        <td id="trip_day">{{d.trip.day}}</td>
+        <td>
+            <table id="stop_table">
+                <thead>
+                <th>Stop id</th>
+                <th>Time till arrival</th>
+                </thead>
+                {% for stop in d.stops %}
+                <tr>
+                    <td>{{stop.stop_id}}</td>
+                    <td>{{stop.time_till_arrive}}</td>
+                </tr>
+                {% endfor %}
+
+            </table>
+
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+<script>
+    function filter() {
+        let tripIdInput, tripDayInput, idFilter, dayFilter, table, tr, trip_id, trip_day, i, tripIdValue,
+            tripDayValue;
+        tripIdInput = document.getElementById("trip_id_filter");
+        tripDayInput = document.getElementById("trip_day_filter");
+        idFilter = tripIdInput.value.toUpperCase();
+        dayFilter = tripDayInput.value.toUpperCase();
+        table = document.getElementById("trip_table");
+        tr = table.getElementsByTagName("tr");
+        for (i = 0; i < tr.length; i++) {
+            trip_id = tr[i].querySelector('#trip_id');
+            trip_day = tr[i].querySelector('#trip_day');
+            if (trip_id) {
+                tripIdValue = trip_id.textContent || trip_id.innerText;
+                if (tripIdValue.toUpperCase().indexOf(idFilter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+            if (trip_day) {
+                tripDayValue = trip_day.textContent || trip_id.innerText;
+                if (tripDayValue.toUpperCase().indexOf(dayFilter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

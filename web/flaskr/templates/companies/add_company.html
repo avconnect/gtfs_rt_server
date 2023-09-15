@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+<!-- add city with hyperlink -->
+{% block header %}
+<h1>{% block title %}Add Company{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<hr>
+(Provide urls without quotes)
+<form method="post">
+    <label for="company_name">Company Name</label>
+    <input name="company_name" id="company_name" required>
+
+    <label for="trip_update_url">Trip Update URL</label>
+    <input name="trip_update_url" id="trip_update_url">
+
+    <label for="vehicle_position_url">Vehicle Position URL</label>
+    <input name="vehicle_position_url" id="vehicle_position_url">
+
+    <label for="service_alert_url">Service Alert URL</label>
+    <input name="service_alert_url" id="service_alert_url">
+
+    <label for="timezone">timezone</label>
+    <select id="timezone" name="timezone">
+        <option value="US/Eastern">(GMT-05:00) Eastern Time (US & Canada)</option>
+        <option value="US/Central">(GMT-06:00) Central Time (US & Canada)</option>
+        <option value="US/Mountain">(GMT-07:00) Mountain Time (US & Canada)</option>
+        <option value="US/Pacific">(GMT-08:00) Pacific Time (US & Canada)</option>
+        <!-- Add more timezone options here -->
+    </select>
+    <hr>
+    <input type="submit" value="Submit">
+
+</form>
+<form action="{{ url_for('companies.index') }}" method="get">
+    <input class="return" type="submit" value="Cancel">
+</form>
+{% endblock %}
