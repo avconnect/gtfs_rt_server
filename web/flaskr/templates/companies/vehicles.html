@@ -7,6 +7,12 @@
 {% block content %}
 <h1> {{company}}({{feed_id}}) | {{timezone}}</h1>
 <hr>
+<form method="post" action="{{url_for('gtfs_routes.display_vehicle_summaries', feed_id=feed_id)}}">
+    <label for="summary_date">Get summery by date</label>
+    <input type="date" name="summary_date" id="summary_date" required>
+    <input type="submit" value="Submit">
+</form>
+<hr>
 {% for v in vehicles %}
 <article class="data">
 

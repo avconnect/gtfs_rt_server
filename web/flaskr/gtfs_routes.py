@@ -1,13 +1,12 @@
 import json
 
-from flask import Blueprint
 from flask import (
-    current_app, abort, render_template
+    Blueprint, current_app, abort, render_template, redirect, request, url_for
 )
 
 from .extensions import db
 from .models import Vehicles, Feed, VehiclePosition, TripRecord, StopDistance
-from .queries import get_vehicles
+from .queries import get_vehicles, get_vehicle_ids
 
 error_log = current_app.config.get("ERROR_LOG", None)
 bp = Blueprint('gtfs_routes', __name__)
@@ -22,6 +21,35 @@ def display_vehicles(feed_id):
     vehicles = get_vehicles(feed_id)
     return render_template('companies/vehicles.html', feed_id=feed_id, company=feed.company_name,
                            timezone=feed.timezone, vehicles=vehicles)
+
+
+@bp.route('/<int:feed_id>/vehicle_summaries', methods=('GET', 'POST'))
+def display_vehicle_summaries(feed_id):
+    if request.method == 'POST':
+        date = str(request.form['summary_date'])
+        vehicles = db.session.query(Vehicles.id, Vehicles.vehicle_gtfs_id).filter_by(feed_id=feed_id) \
+            .order_by(Vehicles.vehicle_gtfs_id.asc()).all()
+        vehicle_ids = [{'id': vehicle[0], 'gtfs_id': vehicle[1]} for vehicle in vehicles]
+        data = []
+        for v_id in vehicle_ids:
+            records = db.session.query(TripRecord).filter_by(vehicle_id=v_id['id'], day=date) \
+                .order_by(TripRecord.timestamp.desc()).all()
+            if len(records) == 0:
+                continue
+            first_trip = records[-1].to_dict()
+            last_trip = records[0].to_dict()
+            data.append(
+                {'vehicle_id': v_id['gtfs_id'],
+                 'first_trip': first_trip['trip_id'],
+                 'first_trip_start': first_trip['timestamp'],
+                 'last_trip': last_trip['trip_id'],
+                 'last_trip_start': last_trip['timestamp']})
+        return render_template('gtfs/vehicle_summary.html', date=date, feed_id=feed_id, data=data)
+
+    feed = db.session.query(Feed).filter_by(id=feed_id).first()
+    vehicles = get_vehicles(feed_id)
+    return redirect(url_for('companies/vehicles.html'), feed_id=feed_id, company=feed.company_name,
+                    timezone=feed.timezone, vehicles=vehicles)
 
 
 @bp.route('/<int:feed_id>/get/vehicle_position/<int:vehicle_id>', methods=('GET', 'POST'))

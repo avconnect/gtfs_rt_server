@@ -29,7 +29,7 @@ def add_vehicle(feed_id: int, gtfs_id: int):
     if gtfs_id is None:
         error = f"add_vehicle Error: cannot add vehicle. No gtfs_id: {gtfs_id}"
     if error is None:
-        print(f"Attempt to add vehicle: feed: {feed_id} , gtfs: {gtfs_id}")
+        # print(f"Attempt to add vehicle: feed: {feed_id} , gtfs: {gtfs_id}")
         vehicle = db.session.query(Vehicles).filter(
             and_(Vehicles.feed_id == feed_id, Vehicles.vehicle_gtfs_id == gtfs_id)).first()
         if vehicle is not None:
@@ -78,13 +78,20 @@ def update_vehicle_position(feed_id, time_recorded=datetime.utcnow().replace(mic
 
         gtfs_id_list = get_vehicle_ids_mapped(feed_id)
         for entity in feed.entity:
+            error = None
             if not entity.HasField('vehicle'):
                 continue
             if not entity.vehicle.HasField('vehicle'):
-                add_to_error_log('update_vehicle_position', f'vehicle information missing\n{entity}')
+                error = f'vehicle information missing\n{entity}'
                 continue
             if not entity.vehicle.HasField('position'):
-                add_to_error_log('update_vehicle_position', f'trip missing positional data\n{entity}')
+                error = f'trip missing positional data\n{entity}'
+                continue
+            if not entity.vehicle.vehicle.id:
+                error = f'vehicle id missing\n{entity}'
+                continue
+            if error:
+                add_to_error_log('update_vehicle_position', error)
                 continue
             gtfs_id = int(entity.vehicle.vehicle.id)
             if gtfs_id not in gtfs_id_list:
@@ -133,27 +140,39 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
             if not entity.trip_update.HasField('trip'):
                 add_to_error_log('update_trip_updates', f'no trip information found\n {entity}')
                 continue
-            if not entity.trip_update.HasField('vehicle'):
-                if entity.trip_update.trip.HasField('schedule_relationship') \
-                        and entity.trip_update.trip.schedule_relationship != TripRecord.CANCELED:
-                    add_to_error_log('update_trip_updates',
-                                     f'no vehicle information found and trip not set to CANCELED\n {entity}')
-                    continue
+            if entity.trip_update.trip.HasField('schedule_relationship') and \
+                    entity.trip_update.trip.schedule_relationship == TripRecord.CANCELED:
                 vehicle_id = None
-                print(f'Trip CANCELED: {entity.trip_update.trip.trip_id}')
-                record = db.session.query(TripRecord).filter_by(vehicle_id=vehicle_id, trip_id=entity.trip_update.trip.trip_id, day=local_date).first()
+                record = db.session.query(TripRecord).filter_by(vehicle_id=vehicle_id,
+                                                                trip_id=entity.trip_update.trip.trip_id,
+                                                                day=local_date).first()
                 if record:
                     continue
             else:
-                gtfs_id = int(entity.trip_update.vehicle.id)
-                if gtfs_id not in gtfs_id_list:
-                    vehicle_id, error = add_vehicle(feed_id, gtfs_id)
-                    if vehicle_id is None:
-                        add_to_error_log('update_trip_update', f'{error}\n{entity}')
+                if not entity.trip_update.HasField('vehicle'):
+                    add_to_error_log('update_trip_updates',
+                                     f'no vehicle information found and trip not set to CANCELED\n {entity}')
+                    vehicle_id = None
+                else:
+                    if not entity.trip_update.vehicle.id:
+                        add_to_error_log('update_trip_update',
+                                         f'vehicle gtfs id missing\n{entity}')
                         continue
-                    else:
-                        gtfs_id_list.update({gtfs_id: vehicle_id})
-                vehicle_id = gtfs_id_list[gtfs_id]
+                    try:
+                        gtfs_id = int(entity.trip_update.vehicle.id)
+                    except BaseException as e:
+                        print(f'failed to cast {gtfs_id} as integer type of {type(gtfs_id)}\n{e}')
+                        add_to_error_log('update_trip_update',
+                                         f'failed to cast {gtfs_id} as integer\n{e}\n{entity}')
+                        continue
+                    if gtfs_id not in gtfs_id_list:
+                        vehicle_id, error = add_vehicle(feed_id, gtfs_id)
+                        if vehicle_id is None:
+                            add_to_error_log('update_trip_update', f'{error}\n{entity}')
+                            continue
+                        else:
+                            gtfs_id_list.update({gtfs_id: vehicle_id})
+                    vehicle_id = gtfs_id_list[gtfs_id]
 
             # TRIP RECORD
             record = TripRecord()
@@ -175,7 +194,7 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
             for stop in entity.trip_update.stop_time_update:
                 if stop.HasField('schedule_relationship'):
                     if stop.schedule_relationship != StopDistance.SCHEDULED:
-                        #stop is either skipped or no_data
+                        # stop is either skipped or no_data
                         continue
                 arrival_timestamp = stop.arrival.time
                 time_diff = arrival_timestamp - timestamp

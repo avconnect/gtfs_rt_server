@@ -117,7 +117,7 @@ def get_trip_ids():
 @bp.route('/api/trip_update/stops', methods=['GET'])
 def get_stops():
     """"
-    Usage: /api/stops/feed_id=<id>&gtfs_id=<id>&local_day=<day>
+    Usage: /api/trip_update/stops/feed_id=<id>&gtfs_id=<id>&local_day=<day>
     :param: feed_id: integer
     :param: gtfs_id: integer
     :param: local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
@@ -133,14 +133,15 @@ def get_stops():
     vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
     if vehicle is None:
         return jsonify({'success': False, 'message': f'vehicle does not exist'}), 404
-    trips = TripRecord.query.filter_by(vehicle_id=vehicle.id, day=local_day) \
+
+    trips = db.session.query(TripRecord).filter_by(vehicle_id=vehicle.id, day=local_day) \
         .order_by(TripRecord.time_recorded.asc()).all()
     data = []
     for trip in trips:
         stops = db.session.query(StopDistance).filter_by(trip_record_id=trip.id).all()
         if len(stops) == 0:
             continue
-        stop_data = {'next_stop': {'id': None, 'time': None}, ' prev_stop': {'id': None, 'time': None}}
+        stop_data = {'prev_stop': {'id': None, 'time': None}, 'next_stop': {'id': None, 'time': None}}
         for stop in stops:
             if stop.time_till_arrive > 0:
                 stop_data.update({'next_stop': {'id': stop.stop_id, 'time': stop.time_till_arrive}})

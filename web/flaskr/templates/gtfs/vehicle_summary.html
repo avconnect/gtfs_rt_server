@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Vehicle Summaries{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed_id)}}">
+    Back
+</a>
+<hr>
+
+<h1>Feed {{feed_id}} Summaries {{date}}</h1>
+<table>
+    <thead>
+    <th>Gtfs ID</th>
+    <th>First Trip</th>
+    <th>First Trip Started</th>
+    <th>Last Trip</th>
+    <th>Last Trip Ended</th>
+    </thead>
+    {% for d in data %}
+    <tr>
+        <td>{{d.vehicle_id }}</td>
+        <td>{{d.first_trip}}</td>
+        <td>{{d.first_trip_start}}</td>
+        <td>{{d.last_trip}}</td>
+        <td>{{d.last_trip_start}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<hr>
+
+{% endblock %}

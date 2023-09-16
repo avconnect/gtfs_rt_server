@@ -147,3 +147,5 @@ pip-selfcheck.json
 
 # other
 misc/
+test_data_pull.py
+.idea
