@@ -83,13 +83,10 @@ def update_vehicle_position(feed_id, time_recorded=datetime.utcnow().replace(mic
                 continue
             if not entity.vehicle.HasField('vehicle'):
                 error = f'vehicle information missing\n{entity}'
-                continue
             if not entity.vehicle.HasField('position'):
                 error = f'trip missing positional data\n{entity}'
-                continue
             if not entity.vehicle.vehicle.id:
                 error = f'vehicle id missing\n{entity}'
-                continue
             if error:
                 add_to_error_log('update_vehicle_position', error)
                 continue
@@ -182,6 +179,7 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
             record.time_recorded = time_recorded
             record.day = local_date
             if vehicle_id is None:
+                db.session.add(record)
                 continue
             if vehicle_id not in records.keys():
                 records.update({vehicle_id: []})

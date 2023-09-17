@@ -177,6 +177,7 @@ def get_trip_vehicles_segments():
     day_iso = data[LOCAL_DAY]
     local_day = date.fromisoformat(day_iso)
     feed_vehicle_ids = get_vehicle_ids(feed_id)
+    feed_vehicle_ids.append(None)  # canceled trips
     data = []
     for trip_id in trip_ids:
         trip_vehicles = db.session.query(TripRecord.vehicle_id,

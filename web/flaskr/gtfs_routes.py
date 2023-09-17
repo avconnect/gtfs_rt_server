@@ -25,6 +25,7 @@ def display_vehicles(feed_id):
 
 @bp.route('/<int:feed_id>/vehicle_summaries', methods=('GET', 'POST'))
 def display_vehicle_summaries(feed_id):
+    # todo find way to get canceled trips
     if request.method == 'POST':
         date = str(request.form['summary_date'])
         vehicles = db.session.query(Vehicles.id, Vehicles.vehicle_gtfs_id).filter_by(feed_id=feed_id) \

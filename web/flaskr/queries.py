@@ -1,5 +1,5 @@
 from .extensions import db
-from .models import Feed, Vehicles
+from .models import Vehicles
 
 
 def get_vehicles(feed_id):
@@ -20,6 +20,8 @@ def get_vehicle_ids(feed_id: int):
 
 
 def vehicle_id_to_gtfs_id(feed_id, vehicle_id):
+    if vehicle_id is None:
+        return None
     vehicle = db.session.query(Vehicles.vehicle_gtfs_id) \
         .filter_by(feed_id=feed_id, id=vehicle_id).first()
     return vehicle[0]
