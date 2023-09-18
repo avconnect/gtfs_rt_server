@@ -60,7 +60,7 @@ Get list of all gtfs ids associated with a feed
 **Example output** :
 
 ```
-[10000, 10001, 10002, ...]
+data: {[10000, 10001, 10002, ...]}
 ```
 
 ## Get Vehicle Positions
@@ -89,28 +89,30 @@ timestamp: timestamp contained within the feed
 ```
 
 ```json
-[
-  {
-    "2023-09-01T12:00:00": {
-      "day": "2023-09-01",
-      "lat": 142.6702499389648,
-      "lon": -173.7392501831055,
-      "occupancy_status": "EMPTY",
-      "time_recorded": "2023-09-01T12:00:00",
-      "timestamp": "2023-09-01T12:00:00"
+{
+  "data": [
+    {
+      "2023-09-01T12:00:00": {
+        "day": "2023-09-01",
+        "lat": 142.6702499389648,
+        "lon": -173.7392501831055,
+        "occupancy_status": 0,
+        "time_recorded": "2023-09-01T12:00:00",
+        "timestamp": "2023-09-01T12:00:00"
+      }
+    },
+    {
+      "2023-09-01T12:01:00": {
+        "day": "2023-09-01",
+        "lat": 142.6702499389648,
+        "lon": -173.7392501831055,
+        "occupancy_status": 1,
+        "time_recorded": "2023-09-01T12:01:00",
+        "timestamp": "2023-09-01T12:01:00"
+      }
     }
-  },
-  {
-    "2023-09-01T12:01:00": {
-      "day": "2023-09-01",
-      "lat": 142.6702499389648,
-      "lon": -173.7392501831055,
-      "occupancy_status": "MANY_SEATS_AVAILABLE",
-      "time_recorded": "2023-09-01T12:01:00",
-      "timestamp": "2023-09-01T12:01:00"
-    }
-  }
-]
+  ]
+}
 ```
 
 **Valid Occupancy Statuses**
@@ -147,24 +149,58 @@ local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 Example Output
 
 ```
-['485593', '485596', '485597', '485602',...]
+{
+  "data": [
+    "485593",
+    "485596",
+    "485597",
+    "485602",
+    ...
+  ]
+}
 ```
 
-## Get Vehicle's Trips
+## Get Vehicle's Trips and Stops
 
 Get all the trips and stops for a vehicle on a specific day
 
-**URL**: `/api/trip_update/trip_ids`
+**URL**: `/api/trip_update/stops`
 
 **Param** :
 
 ```
 feed_id: int
+gtfs_id: int
 local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
 **Example call** : `/api/trip_update/trip_ids?feed_id=x&local_day=2023-01-01`
 
+**Example Output**
+```
+{
+  "data": [
+    {
+      "2023-09-18T19:11:49": {
+        "trip_id": "518137"
+        "next_stop": 2826,
+        "time_to_arrival": 150,
+        "prev_stop": None,
+        "time_of_departure": None,
+      }
+    },
+    {
+      "2023-09-18T19:12:49": {
+        "trip_id": "518137"
+        "next_stop": 2826,
+        "time_to_arrival": 90,
+        "prev_stop": None,
+        "time_of_departure": None,
+      }
+    }
+  ]
+}
+```
 ## Get Trip segments [POST Request]
 
 Get all vehicles that ran a specific trip on a specific day
@@ -189,7 +225,9 @@ param = {
 }
 requests.post(url, json=param)
 ```
+
 **Example Output**
+
 ```json
 {
   "data": [
@@ -197,22 +235,22 @@ requests.post(url, json=param)
       "trip_id": "id_1",
       "segments": [
         {
-          "gtfs_id": "gtfs_id_1",
+          "gtfs_id": "1",
           "first_arrive_time": "2023-09-14T20:00:50",
           "last_arrive_time": "2023-09-14T20:08:50"
         },
         {
-          "gtfs_id": "gtfs_id_11",
+          "gtfs_id": "11",
           "first_arrive_time": "iso_time",
           "last_arrive_time": "iso_time"
         }
       ]
     },
     {
-      "trip_id": "id_1",
+      "trip_id": "id_2",
       "segments": [
         {
-          "gtfs_id": "gtfs_id_2",
+          "gtfs_id": "2",
           "first_arrive_time": "iso_time",
           "last_arrive_time": "iso_time"
         }
