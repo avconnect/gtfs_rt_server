@@ -11,12 +11,22 @@
 <hr>
 
 <h1> GTFS_ID: {{vehicle.vehicle_gtfs_id}}</h1>
+<h1> Day: {{day}}</h1>
+<form method="post"
+      action="{{url_for('gtfs_routes.get_vehicle_position', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">
+    <label for="request_date">Get by date</label>
+    <input style="width:150px" type="date" name="request_date" id="request_date" value="{{day}}" required>
+    <input type="submit" value="Submit">
+</form>
+<a href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">Reset</a>
+
 <table>
     <thead>
     <th>Latitude</th>
     <th>Longitude</th>
     <th>Occupancy Status</th>
     <th>Time Recorded</th>
+    <th>Day</th>
     </thead>
     {% for d in data %}
     <tr>
@@ -24,6 +34,7 @@
         <td>{{d.lon}}</td>
         <td>{{d.occupancy_status}}</td>
         <td>{{d.time_recorded}}</td>
+        <td>{{d.day}}</td>
     </tr>
     {% if not loop.last %}
     {% endif %}

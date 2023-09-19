@@ -5,11 +5,11 @@
 {% endblock %}
 
 {% block content %}
-<h1> {{company}}({{feed_id}}) | {{timezone}}</h1>
+<h1> {{feed.company_name}}({{feed.id}}) | {{feed.timezone}}</h1>
 <hr>
-<form method="post" action="{{url_for('gtfs_routes.display_vehicle_summaries', feed_id=feed_id)}}">
+<form method="post" action="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">
     <label for="summary_date">Get summery by date</label>
-    <input type="date" name="summary_date" id="summary_date" required>
+    <input style="width:150px" type="date" name="summary_date" id="summary_date" value="{{date}}" required>
     <input type="submit" value="Submit">
 </form>
 <hr>
@@ -20,10 +20,10 @@
 
     <div class="grid-container">
         <a class="action grid-item"
-           href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=feed_id, vehicle_id=v.id)}}">
+           href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=feed.id, vehicle_id=v.id)}}">
             Vehicle Position Data </a>
         <a class="action grid-item"
-           href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=feed_id, vehicle_id=v.id)}}">
+           href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=feed.id, vehicle_id=v.id)}}">
             Trip Update Data </a>
     </div>
 </article>

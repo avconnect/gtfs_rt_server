@@ -1,11 +1,11 @@
-from pprint import pprint
+from datetime import date
 
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func
-from datetime import date
-from .queries import get_vehicle_ids, vehicle_id_to_gtfs_id
+
 from .extensions import db
 from .models import Vehicles, Feed, VehiclePosition, TripRecord, StopDistance
+from .queries import get_vehicle_ids, vehicle_ids_to_gtfs_ids_mapped
 from .request_utils import check_get_args, check_json_post_args
 
 bp = Blueprint('api', __name__)
@@ -176,20 +176,20 @@ def get_trip_vehicles_segments():
     trip_ids = data[TRIP_IDS]
     day_iso = data[LOCAL_DAY]
     local_day = date.fromisoformat(day_iso)
-    feed_vehicle_ids = get_vehicle_ids(feed_id)
-    feed_vehicle_ids.append(None)  # canceled trips
+    vehicle_ids = vehicle_ids_to_gtfs_ids_mapped(feed_id)
+    vehicle_ids.update({None: None})  # canceled trips
     data = []
     for trip_id in trip_ids:
         trip_vehicles = db.session.query(TripRecord.vehicle_id,
                                          func.min(TripRecord.timestamp),
                                          func.max(TripRecord.timestamp)) \
-            .filter(TripRecord.vehicle_id.in_(feed_vehicle_ids),
+            .filter(TripRecord.vehicle_id.in_(vehicle_ids.keys()),
                     TripRecord.trip_id == trip_id,
                     TripRecord.day == local_day) \
             .group_by(TripRecord.vehicle_id).all()
         segments = []
         for vehicle in trip_vehicles:
-            gtfs_id = vehicle_id_to_gtfs_id(feed_id, vehicle[0])
+            gtfs_id = vehicle_ids.get(vehicle[0], None)
             first_arrived_timestamp = vehicle[1].isoformat()
             last_arrived_timestamp = vehicle[-1].isoformat()
             segments.append({'gtfs_id': gtfs_id,

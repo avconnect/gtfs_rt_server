@@ -67,7 +67,7 @@ class VehiclePosition(db.Model):
     def to_dict(self):
         return {'lat': self.lat,
                 'lon': self.lon,
-                'occupancy_status': OccupancyStatus(self.occupancy_status).name,
+                'occupancy_status': self.occupancy_status,
                 'time_recorded': self.time_recorded.isoformat(),
                 'timestamp': self.timestamp.isoformat(),
                 'day': str(self.day)
@@ -104,6 +104,7 @@ class StopDistance(db.Model):
     stop_id = db.Column(db.Integer, nullable=False)
     time_till_arrive = db.Column(db.Integer, nullable=False)
 
+    #schdeuled relationship
     SCHEDULED = 0
     SKIP = 1
     NO_DATA = 2

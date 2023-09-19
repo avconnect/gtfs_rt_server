@@ -5,12 +5,12 @@
 {% endblock %}
 
 {% block content %}
-<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed_id)}}">
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">
     Back
 </a>
 <hr>
 
-<h1>Feed {{feed_id}} Summaries {{date}}</h1>
+<h1>{{feed.company_name}}({{feed.id}}) Trip Summaries for {{date}}(Times in UTC)</h1>
 <table>
     <thead>
     <th>Gtfs ID</th>

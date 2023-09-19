@@ -9,12 +9,20 @@
     Back
 </a>
 <hr>
+<h1> GTFS_ID: {{vehicle.vehicle_gtfs_id}}</h1>
+<h1> Day: {{day}}</h1>
+<form method="post"
+      action="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">
+    <label for="request_date">Get by date</label>
+    <input style="width:150px" type="date" name="request_date" id="request_date" value="{{day}}" required>
+    <input type="submit" value="Submit">
+</form>
 <div>
     <input type="text" id="trip_id_filter" onkeyup="filter()" placeholder="Search for trips" title="Filter Trip IDs">
     <input type="text" id="trip_day_filter" onkeyup="filter()" placeholder="Search for trips by day"
            title="Filter Trip Day">
-
 </div>
+<a href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">Reset</a>
 <h1> GTFS ID: {{vehicle.vehicle_gtfs_id}}</h1>
 <table id="trip_table">
     <thead>
