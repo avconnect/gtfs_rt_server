@@ -2,24 +2,13 @@ import pytz
 import requests
 
 from datetime import datetime
-from flask import current_app
 from google.transit import gtfs_realtime_pb2
 from sqlalchemy import and_
 
 from .extensions import db, scheduler
+from .logs import add_to_error_log
 from .models import Vehicles, Feed, VehiclePosition, TripRecord, StopDistance
 from .queries import gtfs_ids_to_vehicle_ids_mapped
-
-error_log = current_app.config.get("ERROR_LOG", None)
-
-
-def add_to_error_log(header, error_msg):
-    dt = datetime.utcnow()
-    error_log_file = open(error_log, 'a')
-    print(f'{header}: {dt.isoformat()}', file=error_log_file)
-    print(error_msg, file=error_log_file)
-    error_log_file.close()
-    print(f'Error logged by {header}: {dt.isoformat()}')
 
 
 def add_vehicle(feed_id: int, gtfs_id: int):

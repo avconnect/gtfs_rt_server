@@ -19,7 +19,7 @@ class ContainerConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     ERROR_LOG = os.getenv("ERROR_LOG")
-
+    LOGGING_ENABLED = False
     SCHEDULER_EXECUTORS = {
         "default": {'type': 'threadpool', 'max_workers': 1}
     }

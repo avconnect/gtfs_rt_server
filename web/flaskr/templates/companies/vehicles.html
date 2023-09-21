@@ -9,6 +9,7 @@
 <hr>
 <form method="post" action="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">
     <label for="summary_date">Get summery by date</label>
+    <input type="text" name="summary_trip_ids" placeholder="Trip ids" id="summary_trip_ids" required>
     <input style="width:150px" type="date" name="summary_date" id="summary_date" value="{{date}}" required>
     <input type="submit" value="Submit">
 </form>

@@ -12,6 +12,13 @@ def check_get_args(args_list):
     return True, None
 
 
+def check_get_form_args(args_list):
+    missing_args = [arg for arg in args_list if not request.form.get(arg, False)]
+    if len(missing_args) > 0:
+        return False, {"missing parameters": str(missing_args)}
+    return True, None
+
+
 def check_json_post_args(args_list):
     """
     Make sure all required args are keys in posted json

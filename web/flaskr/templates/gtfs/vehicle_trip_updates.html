@@ -27,14 +27,14 @@
 <table id="trip_table">
     <thead>
     <th>Trip ID</th>
-    <th>Time Recorded(UTC)</th>
+    <th>Timestamp(UTC)</th>
     <th>Start Day(Local)</th>
     <th>Trips</th>
     </thead>
     {% for d in data %}
     <tr>
         <td id="trip_id">{{d.trip.trip_id}}</td>
-        <td>{{d.trip.time_recorded}}</td>
+        <td>{{d.trip.timestamp}}</td>
         <td id="trip_day">{{d.trip.day}}</td>
         <td>
             <table id="stop_table">

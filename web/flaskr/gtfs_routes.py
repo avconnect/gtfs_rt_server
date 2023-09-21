@@ -22,39 +22,65 @@ def display_vehicles(feed_id):
         abort(404, f"Feed id {feed_id} doesn't exist.")
     vehicles = get_vehicles(feed_id)
     if request.method == 'POST':
-        requested_date = str(request.form['summary_date'])
+        trip_ids = (request.form['summary_trip_ids']).replace("'", "").replace(" ", "").split(',')
+        date = str(request.form['summary_date'])
+        print(trip_ids, date)
         data = []
+
         for vehicle in vehicles:
-            records = db.session.query(TripRecord).filter_by(vehicle_id=vehicle.id, day=requested_date) \
-                .order_by(TripRecord.timestamp.asc()).all()
-            if len(records) == 0:
+            first_trip = db.session.query(TripRecord) \
+                .filter(TripRecord.vehicle_id == vehicle.id,
+                        TripRecord.day == date,
+                        TripRecord.trip_id.in_(trip_ids)) \
+                .order_by(TripRecord.timestamp.asc()).first()
+            last_trip = db.session.query(TripRecord) \
+                .filter(TripRecord.vehicle_id == vehicle.id,
+                        TripRecord.day == date,
+                        TripRecord.trip_id.in_(trip_ids)) \
+                .order_by(TripRecord.timestamp.desc()).first()
+            if first_trip is None:  # then last trip is also none
                 continue
-            first_trip = records[0].to_dict()
-            last_trip = records[-1].to_dict()
             data.append(
                 {'vehicle_id': vehicle.vehicle_gtfs_id,
+                 'first_trip': first_trip.trip_id,
+                 'first_trip_start': first_trip.timestamp.isoformat(),
+                 'last_trip': last_trip.trip_id,
+                 'last_trip_start': last_trip.timestamp.isoformat()})
+
+        canceled_trips = db.session.query(TripRecord) \
+            .filter(TripRecord.vehicle_id == None,
+                    TripRecord.day == date,
+                    TripRecord.trip_id.in_(trip_ids)) \
+            .order_by(TripRecord.timestamp.asc()).all()
+        print(f'canceled trips: {len(canceled_trips)}')
+        for trip in canceled_trips:
+            first_trip = trip.to_dict()
+            data.append(
+                {'vehicle_id': 'cancelled',
                  'first_trip': first_trip['trip_id'],
                  'first_trip_start': first_trip['timestamp'],
-                 'last_trip': last_trip['trip_id'],
-                 'last_trip_start': last_trip['timestamp']})
-        return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_date, data=data)
-    tz = pytz.timezone(feed.timezone)
-    dt = datetime.now(tz)
-    date = dt.date().isoformat()
-    return render_template('companies/vehicles.html', feed=feed, vehicles=vehicles, date=date)
+                 'last_trip': None,
+                 'last_trip_start': None})
+        return render_template('gtfs/vehicle_summary.html', feed=feed, date=date, data=data)
+    return render_template('companies/vehicles.html', feed=feed, vehicles=vehicles, date=None)
 
 
 @bp.route('/<int:feed_id>/get/vehicle_position/<int:vehicle_id>', methods=('GET', 'POST'))
 def get_vehicle_position(feed_id: int, vehicle_id: int):
     vehicle = Vehicles.query.filter_by(id=vehicle_id).first()
+
+    requested_day = None
     if request.method == 'POST':
         requested_day = str(request.form['request_date'])
-        positions = VehiclePosition.query.filter_by(vehicle_id=vehicle.id, day=requested_day) \
-            .order_by(VehiclePosition.timestamp.desc()).all()
     else:
-        requested_day = None
-        positions = VehiclePosition.query.filter_by(vehicle_id=vehicle.id) \
-            .order_by(VehiclePosition.timestamp.desc()).all()
+        timezone = db.session.query(Feed.timezone).filter_by(id=feed_id).first()
+        print(timezone)
+        if len(timezone) > 0:
+            tz = pytz.timezone(timezone[0])
+            requested_day = datetime.now(tz).date()
+
+    positions = VehiclePosition.query.filter_by(vehicle_id=vehicle.id, day=requested_day) \
+        .order_by(VehiclePosition.timestamp.desc()).all()
     data = []
     for position in positions:
         entry = position.to_dict()
@@ -66,14 +92,18 @@ def get_vehicle_position(feed_id: int, vehicle_id: int):
 @bp.route('/<int:feed_id>/get/trip_updates/<int:vehicle_id>', methods=('GET', 'POST'))
 def get_vehicle_trip_updates(feed_id: id, vehicle_id: int):
     vehicle = Vehicles.query.filter_by(id=vehicle_id).first()
+    requested_day = None
     if request.method == 'POST':
         requested_day = str(request.form['request_date'])
-        trips = TripRecord.query.filter_by(vehicle_id=vehicle.id, day=requested_day) \
-            .order_by(TripRecord.timestamp.desc(), TripRecord.trip_id.asc()).all()
+
     else:
-        requested_day = None
-        trips = TripRecord.query.filter_by(vehicle_id=vehicle.id) \
-            .order_by(TripRecord.timestamp.desc(), TripRecord.trip_id.asc()).all()
+        timezone = db.session.query(Feed.timezone).filter_by(id=feed_id).first()
+        print(timezone)
+        if len(timezone) > 0:
+            tz = pytz.timezone(timezone[0])
+            requested_day = datetime.now(tz).date()
+    trips = TripRecord.query.filter_by(vehicle_id=vehicle.id, day=requested_day) \
+        .order_by(TripRecord.timestamp.desc(), TripRecord.trip_id.asc()).all()
     data = []
     for trip in trips:
         entry = {}

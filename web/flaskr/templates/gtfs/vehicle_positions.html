@@ -22,18 +22,18 @@
 
 <table>
     <thead>
+    <th>Timestamp</th>
     <th>Latitude</th>
     <th>Longitude</th>
     <th>Occupancy Status</th>
-    <th>Time Recorded</th>
-    <th>Day</th>
+    <th>Start Day(Local)</th>
     </thead>
     {% for d in data %}
     <tr>
+        <td>{{d.timestamp}}</td>
         <td>{{d.lat }}</td>
         <td>{{d.lon}}</td>
         <td>{{d.occupancy_status}}</td>
-        <td>{{d.time_recorded}}</td>
         <td>{{d.day}}</td>
     </tr>
     {% if not loop.last %}
