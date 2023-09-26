@@ -74,10 +74,10 @@ Get a vehicle's positional data for a specific day
 ```
 feed_id: int
 gtfs_id: int
-local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
-**Example call** `/api/vehicle_positions?feed_id=x&gtfs_id=y&local_day=2023-01-01`
+**Example call** `/api/vehicle_positions?feed_id=x&gtfs_id=y&day=2023-01-01`
 
 **Example Output**
 
@@ -140,10 +140,10 @@ Get a list of all trip ids for a specific feed on a specific day
 
 ```
 feed_id: int
-local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
-**Example call** : `/api/trip_update/trip_ids?feed_id=x&local_day=2023-01-01`
+**Example call** : `/api/trip_update/trip_ids?feed_id=x&day=2023-01-01`
 
 **Note** : Trip Ids are always represented as strings
 Example Output
@@ -171,10 +171,10 @@ Get all the trips and stops for a vehicle on a specific day
 ```
 feed_id: int
 gtfs_id: int
-local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
-**Example call** : `/api/trip_update/trip_ids?feed_id=x&local_day=2023-01-01`
+**Example call** : `/api/trip_update/trip_ids?feed_id=x&day=2023-01-01`
 
 **Example Output**
 ```
@@ -212,7 +212,7 @@ Get all vehicles that ran a specific trip on a specific day
 ```
 feed_id: int
 trip_id: list of trip_id:str
-local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
 **Example call**: (using requests)
@@ -221,7 +221,7 @@ local_day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 param = {
     "feed_id": "int",
     "trip_ids": "[trip_id_1,...]",
-    "local_day": "YYYY-MM-DD"
+    "day": "YYYY-MM-DD"
 }
 requests.post(url, json=param)
 ```
