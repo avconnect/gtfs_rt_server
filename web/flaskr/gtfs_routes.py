@@ -65,6 +65,7 @@ def display_vehicle_summary(feed_id):
                  'last_trip': last_trip.trip_id,
                  'last_trip_end': last_trip.timestamp.isoformat()})
         # last page add canceled trips
+        items = sorted(items, key=lambda d: d['gtfs_id'])
         if page == data.pages:
             canceled_trips = db.session.query(TripRecord) \
                 .filter(TripRecord.vehicle_id == None,
@@ -74,12 +75,12 @@ def display_vehicle_summary(feed_id):
             print(f'canceled trips: {len(canceled_trips)}')
             for trip in canceled_trips:
                 items.append(
-                    {'vehicle_id': 'cancelled',
+                    {'gtfs_id': 'cancelled',
                      'first_trip': trip.trip_id,
                      'first_trip_start': trip.timestamp.isoformat(),
                      'last_trip': None,
-                     'last_trip_start': None})
-        data.items = sorted(items, key=lambda d: d['gtfs_id'])
+                     'last_trip_end': None})
+        data.items = items
     trip_ids_str = ','.join(trip_ids)
     return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips=trip_ids_str, data=data)
 
@@ -128,7 +129,6 @@ def get_vehicle_trip_updates(feed_id: id, vehicle_id: int):
             .order_by(StopDistance.time_till_arrive.desc()).all()
         stops_list = [stop.to_dict() for stop in stops]
         data.items[i].stops = stops_list
-
     return render_template('gtfs/vehicle_trip_updates.html', feed=feed, vehicle_id=vehicle.vehicle_gtfs_id,
                            date=requested_day, data=data)
 
