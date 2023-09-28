@@ -18,7 +18,6 @@ def create_app(config='config.ContainerConfig'):
             print('Scheduler Start')
             from . import tasks  # noqa: F401
             scheduler.start()
-            #tasks.add_gtfs_tasks_existing()
             print()
 
         from . import companies

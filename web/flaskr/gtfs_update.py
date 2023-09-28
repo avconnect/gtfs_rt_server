@@ -118,18 +118,18 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
         target_datetime = timestamp_dt.replace(tzinfo=pytz.UTC).astimezone(target_tz)
         local_date = target_datetime.date()
 
-        gtfs_ids = gtfs_ids_to_vehicle_ids_mapped(feed_id)
+        gtfs_id_dict = gtfs_ids_to_vehicle_ids_mapped(feed_id)
         records = {}  # format v_id : [record 1, record 2, ...]
         for entity in feed.entity:
+            # Get ID
             if not entity.HasField('trip_update'):
                 continue
             if not entity.trip_update.HasField('trip'):
                 add_to_error_log('update_trip_updates', f'no trip information found\n {entity}')
                 continue
-
             if entity.trip_update.trip.HasField('schedule_relationship') and \
                     entity.trip_update.trip.schedule_relationship == TripRecord.CANCELED:
-                # print(f'trip {entity.trip_update.trip.trip_id} Canceled')
+                # trip canceled, check if record for canceled trip already exists
                 record = db.session.query(TripRecord).filter_by(vehicle_id=None,
                                                                 trip_id=entity.trip_update.trip.trip_id,
                                                                 day=local_date).first()
@@ -137,26 +137,24 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
                     continue
                 vehicle_id = None
             else:
-                if not entity.trip_update.HasField('vehicle'):
+                if not entity.trip_update.HasField('vehicle') or not entity.trip_update.vehicle.id:
+                    '''
                     add_to_error_log('update_trip_updates',
-                                     f'no vehicle information found and trip not set to CANCELED\n {entity}')
+                                     f'no gtfs_id found and trip not set to CANCELED\n {entity}')
                     vehicle_id = None
+                    '''
+                    continue
                 else:
-                    if not entity.trip_update.vehicle.id:
-                        add_to_error_log('update_trip_update',
-                                         f'vehicle gtfs id missing\n{entity}')
-                        continue
                     gtfs_id = int(entity.trip_update.vehicle.id)
-                    if gtfs_id not in gtfs_ids:
+                    if gtfs_id not in gtfs_id_dict:
                         vehicle_id, error = add_vehicle(feed_id, gtfs_id)
                         if vehicle_id is None:
                             add_to_error_log('update_trip_update', f'{error}\n{entity}')
                             continue
-                        else:
-                            gtfs_ids.update({gtfs_id: vehicle_id})
-                    vehicle_id = gtfs_ids[gtfs_id]
+                        gtfs_id_dict.update({gtfs_id: vehicle_id})
+                    vehicle_id = gtfs_id_dict[gtfs_id]
 
-            # TRIP RECORD
+            # CREATE TRIP RECORD
             record = TripRecord()
             record.vehicle_id = vehicle_id
             record.trip_id = entity.trip_update.trip.trip_id
@@ -169,6 +167,7 @@ def update_trip_updates(feed_id, time_recorded=datetime.utcnow().replace(microse
             if vehicle_id not in records.keys():
                 records.update({vehicle_id: []})
             records[vehicle_id].append({'record': record, 'next_stop': None, 'prev_stop': None})
+
             # STOP TIME
             next_stop_id = None
             prev_stop_id = None

@@ -5,25 +5,12 @@
 {% endblock %}
 
 {% block content %}
-<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=vehicle.feed_id)}}">
-    Back
-</a>
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">Back</a>
 <hr>
-<h1> GTFS_ID: {{vehicle.vehicle_gtfs_id}}</h1>
-<h1> Day: {{day}}</h1>
-<form method="post"
-      action="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">
-    <label for="request_date">Get by date</label>
-    <input style="width:150px" type="date" name="request_date" id="request_date" value="{{day}}" required>
-    <input type="submit" value="Submit">
-</form>
-<div>
-    <input type="text" id="trip_id_filter" onkeyup="filter()" placeholder="Search for trips" title="Filter Trip IDs">
-    <input type="text" id="trip_day_filter" onkeyup="filter()" placeholder="Search for trips by day"
-           title="Filter Trip Day">
-</div>
-<a href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">Reset</a>
-<h1> GTFS ID: {{vehicle.vehicle_gtfs_id}}</h1>
+{% include 'get_gtfs_form.html' %}
+<hr>
+<h1> GTFS_ID: {{vehicle_id}}</h1>
+<h1> Day: {{date}}</h1>
 <table id="trip_table">
     <thead>
     <th>Trip ID</th>
@@ -31,18 +18,18 @@
     <th>Start Day(Local)</th>
     <th>Trips</th>
     </thead>
-    {% for d in data %}
+    {% for trip in data.items %}
     <tr>
-        <td id="trip_id">{{d.trip.trip_id}}</td>
-        <td>{{d.trip.timestamp}}</td>
-        <td id="trip_day">{{d.trip.day}}</td>
+        <td id="trip_id">{{trip.trip_id}}</td>
+        <td>{{trip.timestamp}}</td>
+        <td id="trip_day">{{trip.day}}</td>
         <td>
             <table id="stop_table">
                 <thead>
                 <th>Stop id</th>
                 <th>Time till arrival</th>
                 </thead>
-                {% for stop in d.stops %}
+                {% for stop in trip.stops %}
                 <tr>
                     <td>{{stop.stop_id}}</td>
                     <td>{{stop.time_till_arrive}}</td>
@@ -54,38 +41,5 @@
         </td>
     </tr>
     {% endfor %}
-
 </table>
-<script>
-    function filter() {
-        let tripIdInput, tripDayInput, idFilter, dayFilter, table, tr, trip_id, trip_day, i, tripIdValue,
-            tripDayValue;
-        tripIdInput = document.getElementById("trip_id_filter");
-        tripDayInput = document.getElementById("trip_day_filter");
-        idFilter = tripIdInput.value.toUpperCase();
-        dayFilter = tripDayInput.value.toUpperCase();
-        table = document.getElementById("trip_table");
-        tr = table.getElementsByTagName("tr");
-        for (i = 0; i < tr.length; i++) {
-            trip_id = tr[i].querySelector('#trip_id');
-            trip_day = tr[i].querySelector('#trip_day');
-            if (trip_id) {
-                tripIdValue = trip_id.textContent || trip_id.innerText;
-                if (tripIdValue.toUpperCase().indexOf(idFilter) > -1) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
-                }
-            }
-            if (trip_day) {
-                tripDayValue = trip_day.textContent || trip_id.innerText;
-                if (tripDayValue.toUpperCase().indexOf(dayFilter) > -1) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
-                }
-            }
-        }
-    }
-</script>
 {% endblock %}

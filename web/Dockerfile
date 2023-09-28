@@ -1,6 +1,4 @@
 FROM python:3.9
-RUN ["apt-get", "update"]
-RUN ["apt-get", "install", "-y", "vim"]
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONWARNINGS "ignore:Unverified HTTPS request"
 ENV FLASK_APP flaskr

@@ -18,16 +18,16 @@ def index():
 @bp.route('/add_company', methods=('GET', 'POST'))
 def add_company():
     if request.method == 'POST':
-        company_name = str(request.form['company_name'])
+        company_name = request.form.get('company_name', None, type=str)
+        timezone = request.form.get('timezone', None, type=str)
         if not company_name:
-            error = 'enter company name'
+            error = 'Enter company name'
             flash(error)
             return render_template('companies/add_company.html')
         company_name = company_name.lower()
-        timezone = str(request.form['timezone'])
-        position_url = str(request.form['vehicle_position_url'])
-        trip_update_url = str(request.form['trip_update_url'])
-        service_alert_url = str(request.form['service_alert_url'])
+        service_alert_url = request.form.get('service_alert_url', None, type=str)
+        position_url = request.form.get('vehicle_position_url', None, type=str)
+        trip_update_url = request.form.get('trip_update_url', None, type=str)
         '''for url in [position_url, trip_update_url, service_alert_url]:
             if not url:
                 continue
@@ -40,9 +40,9 @@ def add_company():
         if feed is not None:
             # update
             feed.company_name = company_name
-            feed.vehicle_position_url = position_url if position_url else None
-            feed.trip_update_url = trip_update_url if trip_update_url else None
-            feed.service_alert_url = service_alert_url if service_alert_url else None
+            feed.vehicle_position_url = position_url
+            feed.trip_update_url = trip_update_url
+            feed.service_alert_url = service_alert_url
             feed.timezone = timezone if timezone else None
         else:
             # create new

@@ -5,12 +5,48 @@
 {% endblock %}
 
 {% block content %}
-<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">
-    Back
-</a>
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">Back</a>
 <hr>
+<form method="post" id="summary_submit">
 
-<h1>{{feed.company_name}}({{feed.id}}) Trip Summaries for {{date}}(Times in UTC)</h1>
+    <label for="date">Select Trip Ids</label>
+    <input type="text" id="trip_ids" name="trip_ids" value="{{trips}}" required>
+
+    <label for="date">Select date</label>
+    <input style="width: min-content" type="date" id="date" name="date" value="{{date}}" required>
+
+    <input type="hidden" id="page" name="page" value="{{ data.page }}">
+    <label for="per_page">Items per page</label>
+    <input style="width: min-content" type="number" id="per_page" name="per_page" value="{{ data.per_page }}">
+    <input type="submit" value="Submit">
+</form>
+<div class=pagination>
+{% if data %}
+Page:
+    {% for page in data.iter_pages(left_edge=1, left_current=2, right_current=4, right_edge=1) %}
+        {% if page %}
+            {% if page != data.page %}
+                <!--<input type="submit" name="page" id="page" value="{{ page }}">-->
+                <a href="#" onclick="submitForm({{page}})">{{page}}</a>
+            {% else %}
+                <!--<input type="submit" value="{{ page }}" disabled >-->
+                {{ page }}
+            {% endif %}
+        {% else %}
+            <span class=ellipsis>…</span>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+</div>
+ <script>
+    // JavaScript function to submit the form with the selected page
+    function submitForm(page) {
+        document.getElementById('page').value = page;
+        document.getElementById('summary_submit').submit();
+    }
+</script>
+<hr>
+<h1>{{feed.company_name}}({{feed.id}}) Trip Summaries for {{date}} (Times in UTC)</h1>
 <table>
     <thead>
     <th>Gtfs ID</th>
@@ -19,16 +55,19 @@
     <th>Last Trip</th>
     <th>Last Trip Ended</th>
     </thead>
-    {% for d in data %}
-    <tr>
-        <td>{{d.vehicle_id }}</td>
-        <td>{{d.first_trip}}</td>
-        <td>{{d.first_trip_start}}</td>
-        <td>{{d.last_trip}}</td>
-        <td>{{d.last_trip_start}}</td>
-    </tr>
-    {% endfor %}
+    {% if data %}
+        {% for vehicle in data.items %}
+        <tr>
+
+            <td>{{vehicle.gtfs_id }}</td>
+             <td>{{vehicle.first_trip}}</td>
+             <td>{{vehicle.first_trip_start}}</td>
+             <td>{{vehicle.last_trip}}</td>
+             <td>{{vehicle.last_trip_end}}</td>
+
+        </tr>
+        {% endfor %}
+    {% endif %}
 </table>
 <hr>
-
 {% endblock %}

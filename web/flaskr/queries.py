@@ -1,16 +1,8 @@
 from .extensions import db
-from .models import Feed, Vehicles
-
-
-def get_feed_timezone(feed_id):
-    feed_tz = db.session.query(Feed.timezone).filter_by(id=feed_id).first()
-    if feed_tz:
-        return feed_tz[0]
-    return None
+from .models import Vehicles
 
 
 def get_vehicles(feed_id):
-    print(feed_id)
     vehicles = db.session.query(Vehicles) \
         .filter_by(feed_id=feed_id) \
         .order_by(Vehicles.vehicle_gtfs_id.asc()) \
@@ -19,11 +11,11 @@ def get_vehicles(feed_id):
 
 
 def get_vehicle_ids(feed_id: int):
-    vehicles = db.session.query(Vehicles) \
+    vehicle_ids = db.session.query(Vehicles.id) \
         .filter_by(feed_id=feed_id) \
         .order_by(Vehicles.vehicle_gtfs_id.asc()) \
         .all()
-    return [v.id for v in vehicles]
+    return [v_id[0] for v_id in vehicle_ids]
 
 
 def vehicle_id_to_gtfs_id(feed_id, vehicle_id):

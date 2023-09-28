@@ -5,20 +5,12 @@
 {% endblock %}
 
 {% block content %}
-<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=vehicle.feed_id)}}">
-    Back
-</a>
+<a class="action" href="{{url_for('gtfs_routes.display_vehicles', feed_id=feed.id)}}">Back</a>
 <hr>
-
-<h1> GTFS_ID: {{vehicle.vehicle_gtfs_id}}</h1>
-<h1> Day: {{day}}</h1>
-<form method="post"
-      action="{{url_for('gtfs_routes.get_vehicle_position', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">
-    <label for="request_date">Get by date</label>
-    <input style="width:150px" type="date" name="request_date" id="request_date" value="{{day}}" required>
-    <input type="submit" value="Submit">
-</form>
-<a href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=vehicle.feed_id, vehicle_id=vehicle.id)}}">Reset</a>
+{% include 'get_gtfs_form.html' %}
+<hr>
+<h1> GTFS_ID: {{vehicle_id}}</h1>
+<h1> Day: {{date}} (Times in UTC)</h1>
 
 <table>
     <thead>
@@ -28,7 +20,7 @@
     <th>Occupancy Status</th>
     <th>Start Day(Local)</th>
     </thead>
-    {% for d in data %}
+    {% for d in data.items %}
     <tr>
         <td>{{d.timestamp}}</td>
         <td>{{d.lat }}</td>

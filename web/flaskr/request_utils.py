@@ -1,5 +1,13 @@
 from flask import request
 
+# ARGS
+FEED_ID = 'feed_id'
+COMPANY_NAME = 'company_name'
+GTFS_ID = 'gtfs_id'
+DAY = 'day'
+TRIP_IDS = 'trip_ids'
+PAGE = 'page'
+
 
 def check_get_args(args_list):
     """
