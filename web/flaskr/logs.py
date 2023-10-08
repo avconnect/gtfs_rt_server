@@ -8,10 +8,10 @@ logging_enable = current_app.config.get("LOGGING_ENABLED", False)
 
 def add_to_error_log(header, error_msg):
     dt = datetime.utcnow()
-    print(f'Error logged by {header}: {dt.isoformat()}')
     if logging_enable is True:
+        print(f'Error logged by {header}: {dt.isoformat()}')
         error_log_file = open(error_log, 'a')
         print(f'{header}: {dt.isoformat()}\n{error_msg}', file=error_log_file)
         error_log_file.close()
     else:
-        print(error_msg)
+        print(dt.isoformat(), header, error_msg)

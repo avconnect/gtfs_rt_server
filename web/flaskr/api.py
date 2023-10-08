@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func
@@ -32,11 +32,11 @@ def get_feed():
     data, error = check_get_args([COMPANY_NAME])
     if error:
         return jsonify(error), 400
-    company_name = request.args.get(COMPANY_NAME, type=str)
-    feed = db.session.query(Feed).filter_by(company_name=company_name).first()
+    company_name = request.args.get(COMPANY_NAME, type=str).lower()
+    feed = db.session.query(Feed.id).filter_by(company_name=company_name).first()
     if feed is None:
         return jsonify({'success': False, 'message': f'company does not exist'}), 404
-    return jsonify({'feed_id': feed.id}), 200
+    return jsonify({'feed_id': feed[0]}), 200
 
 
 @bp.route('/api/vehicles', methods=['GET'])
@@ -50,11 +50,12 @@ def get_vehicles_gtfs_ids():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-    query = db.session.query(Vehicles).filter_by(feed_id=feed_id).order_by(Vehicles.vehicle_gtfs_id.asc())
+    query = db.session.query(Vehicles.vehicle_gtfs_id).filter_by(feed_id=feed_id).order_by(
+        Vehicles.vehicle_gtfs_id.asc())
     if db.session.query(query.exists()).scalar() is False:
         return jsonify({'success': False, 'message': f'feed id does not exist'}), 404
     data = query.all()
-    return jsonify({'data': [d.vehicle_gtfs_id for d in data]}), 200
+    return jsonify({'data': [d[0] for d in data]}), 200
 
 
 @bp.route('/api/vehicle_positions', methods=['GET'])
@@ -70,7 +71,7 @@ def get_positions():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-    gtfs_id = request.args.get(GTFS_ID, type=int)
+    gtfs_id = request.args.get(GTFS_ID, type=str)
     day_iso = request.args.get(DAY, type=str)
     day = date.fromisoformat(day_iso)
     vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
@@ -84,6 +85,34 @@ def get_positions():
     for p in positions:
         data.append({p.timestamp.isoformat(): p.to_dict()})
 
+    return jsonify({'data': data}), 200
+
+
+@bp.route('/api/vehicle_positions/recent', methods=['GET'])
+def get_recent_positions():
+    """"
+    Usage: /api/positions/recent?feed_id=<id>&gtfs_id=<id>&day=<day>
+    :param: feed_id: integer
+    :param: day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+    :return: list of most recent VehiclePositions
+    """
+    data, error = check_get_args([FEED_ID])
+    if error:
+        return jsonify(error), 400
+    feed_id = request.args.get(FEED_ID, type=int)
+
+    vehicle_ids = get_vehicle_ids(feed_id)
+    if vehicle_ids is None:
+        return jsonify({'success': False, 'message': f'feed does not exist'}), 404
+
+    positions = db.session.query(VehiclePosition) \
+        .distinct(VehiclePosition.vehicle_id) \
+        .filter(VehiclePosition.vehicle_id.in_(vehicle_ids)) \
+        .order_by(VehiclePosition.vehicle_id, VehiclePosition.timestamp.desc()) \
+        .all()
+    data = {}
+    for p in positions:
+        data.update({p.vehicle.vehicle_gtfs_id: p.to_dict()})
     return jsonify({'data': data}), 200
 
 
@@ -102,8 +131,10 @@ def get_trip_ids():
     day_iso = request.args.get(DAY, type=str)
     day = date.fromisoformat(day_iso)
     vehicle_ids = get_vehicle_ids(feed_id)
-    trips = db.session.query(TripRecord.trip_id).filter(TripRecord.vehicle_id.in_(vehicle_ids),
-                                                        TripRecord.day == day).distinct(TripRecord.trip_id).all()
+    trips = db.session.query(TripRecord.trip_id) \
+        .filter(TripRecord.vehicle_id.in_(vehicle_ids),
+                TripRecord.day == day) \
+        .distinct(TripRecord.trip_id).all()
 
     return jsonify({'data': [trip[0] for trip in trips]}), 200
 
@@ -121,21 +152,22 @@ def get_stops():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-    gtfs_id = request.args.get(GTFS_ID, type=int)
+    gtfs_id = request.args.get(GTFS_ID, type=str)
     day_iso = request.args.get(DAY, type=str)
     day = date.fromisoformat(day_iso)
-    vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
-    if vehicle is None:
+    vehicle_id = db.session.query(Vehicles.id).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
+    if vehicle_id is None:
         return jsonify({'success': False, 'message': f'vehicle does not exist'}), 404
 
-    trips = db.session.query(TripRecord).filter_by(vehicle_id=vehicle.id, day=day) \
-        .order_by(TripRecord.time_recorded.asc()).all()
+    trips = db.session.query(TripRecord) \
+        .filter_by(vehicle_id=vehicle_id[0], day=day) \
+        .order_by(TripRecord.timestamp.asc()).all()
     data = []
     for trip in trips:
-        stops = db.session.query(StopDistance).filter_by(trip_record_id=trip.id).all()
-        if len(stops) == 0:
+        stops = trip.stops
+        if not stops:
             continue
-        stop_data = {'prev_stop': {'id': None, 'time': None}, 'next_stop': {'id': None, 'time': None}}
+        stop_data = {'next_stop': {'id': None, 'time': None}, 'prev_stop': {'id': None, 'time': None}}
         for stop in stops:
             if stop.time_till_arrive > 0:
                 stop_data.update({'next_stop': {'id': stop.stop_id, 'time': stop.time_till_arrive}})
@@ -156,9 +188,9 @@ def get_stops():
 @bp.route('/api/trip_update/vehicle_segments', methods=['POST'])
 def get_trip_vehicles_segments():
     """"
-    Usage: /api/stops/feed_id=<id>&gtfs_id=<id>&day=<day>
+    Usage: /api/trip_update/vehicle_segments/feed_id=<id>&trip_ids=<id1,id2>&day=<day>
     :param: feed_id: integer
-    :param: trip_ids: list of trip_id
+    :param: trip_ids: list of trip_id as strings
     :param: day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
     :return: dict of trip_ids and segments-> list of vehicles that ran the trip and their start and end times
     """
@@ -166,12 +198,11 @@ def get_trip_vehicles_segments():
     if error:
         return jsonify(error), 400
 
-    feed_id = data[FEED_ID]
-    trip_ids = data[TRIP_IDS]
-    day_iso = data[DAY]
+    feed_id = int(request.json.get(FEED_ID))
+    trip_ids = request.json.get(TRIP_IDS)
+    day_iso = request.json.get(DAY)
     day = date.fromisoformat(day_iso)
     vehicle_ids = vehicle_ids_to_gtfs_ids_mapped(feed_id)
-    vehicle_ids.update({None: None})  # canceled trips
     data = []
     for trip_id in trip_ids:
         trip_vehicles = db.session.query(TripRecord.vehicle_id,
@@ -189,5 +220,19 @@ def get_trip_vehicles_segments():
             segments.append({'gtfs_id': gtfs_id,
                              'first_arrived_timestamp': first_arrived_timestamp,
                              'last_arrive_timestamp': last_arrived_timestamp})
+        canceled_trips = db.session.query(TripRecord.timestamp) \
+            .filter_by(vehicle_id=None,
+                       trip_id=trip_id,
+                       day=day) \
+            .order_by(TripRecord.timestamp.asc()).all()
+        for trip in canceled_trips:
+            gtfs_id = None
+            first_arrived_timestamp = trip[0].isoformat()
+            last_arrived_timestamp = None
+            segments.append({'gtfs_id': gtfs_id,
+                             'first_arrived_timestamp': first_arrived_timestamp,
+                             'last_arrive_timestamp': last_arrived_timestamp})
+
         data.append({'trip_id': trip_id, 'segments': segments})
+
     return jsonify({'data': data}), 200

@@ -8,5 +8,10 @@ COPY requirements.txt /code/
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . /code/
 EXPOSE 5000
+#Debug
+# change run app to point to debug app
 CMD python run.py
-#CMD gunicorn --bind 0.0.0.0:5000 -w 3 run:app
+
+# Prod
+# change run app to point to production app
+#CMD gunicorn --bind 0.0.0.0:5000 -w 1 run:app

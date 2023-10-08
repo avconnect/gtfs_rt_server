@@ -1,15 +1,21 @@
 <form method="post" id="gtfs_submit">
     <label for="date">Select date</label>
     <input style="width: min-content" type="date" id="date" name="date" value="{{date}}" required>
+    <label for="trip_ids"></label>
+    <input type="hidden", name="trip_ids", id="trip_ids" value="{{trips}}">
 
     <input type="hidden" id="page" name="page" value="{{ data.page }}">
 
     <label for="per_page">Items per page</label>
-    <input style="width: min-content" type="number" id="per_page" name="per_page" value="{{ data.per_page }}">
+    {% if data.per_page %}
+        <input style="width: min-content" type="number" id="per_page" name="per_page" value="{{ data.per_page }}">
+    {% else %}
+        <input style="width: min-content" type="number" id="per_page" name="per_page" value="10">
+    {% endif %}
     <input type="submit" value="Submit">
 </form>
 <div class=pagination>
-{% if data %}
+{% if data.iter_pages %}
 Page:
     {% for page in data.iter_pages(left_edge=1, left_current=2, right_current=4, right_edge=1) %}
         {% if page %}
@@ -19,15 +25,14 @@ Page:
                 {{ page }}
             {% endif %}
         {% else %}
-            <span class=ellipsis>(…)</span>
+            <span class=ellipsis>…</span>
         {% endif %}
     {% endfor %}
 {% endif %}
 </div>
  <script>
-    // JavaScript function to submit the form with the selected page
     function submitForm(page) {
         document.getElementById('page').value = page;
-        document.getElementById('summary_submit').submit();
+        document.getElementById('gtfs_submit').submit();
     }
 </script>

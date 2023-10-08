@@ -46,6 +46,8 @@ class Vehicles(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     feed_id = db.Column(db.Integer, db.ForeignKey('gtfs_feeds.id'), nullable=False)
     vehicle_gtfs_id = db.Column(db.Integer, nullable=False)
+    trips = db.relationship('TripRecord', backref=db.backref('vehicle', lazy='joined'))
+    positions = db.relationship('VehiclePosition', backref=db.backref('vehicle', lazy='joined'))
 
     def to_dict(self):
         return {'feed_id': self.feed_id,
@@ -63,11 +65,19 @@ class VehiclePosition(db.Model):
     time_recorded = db.Column(db.DateTime, nullable=False, default=(datetime.utcnow()).replace(microsecond=0))
     timestamp = db.Column(db.DateTime, nullable=False)
     day = db.Column(db.Date, nullable=False, index=True)
-
     def to_dict(self):
         return {'lat': self.lat,
                 'lon': self.lon,
                 'occupancy_status': self.occupancy_status,
+                'time_recorded': self.time_recorded.isoformat(),
+                'timestamp': self.timestamp.isoformat(),
+                'day': str(self.day)
+                }
+
+    def to_dict_ui(self):
+        return {'lat': self.lat,
+                'lon': self.lon,
+                'occupancy_status': OccupancyStatus(self.occupancy_status).name,
                 'time_recorded': self.time_recorded.isoformat(),
                 'timestamp': self.timestamp.isoformat(),
                 'day': str(self.day)
@@ -83,12 +93,14 @@ class TripRecord(db.Model):
     time_recorded = db.Column(db.DateTime, nullable=False, default=(datetime.utcnow()).replace(microsecond=0))
     timestamp = db.Column(db.DateTime, nullable=False)
     day = db.Column(db.Date, nullable=False, index=True)
+    stops = db.relationship('StopDistance', backref='trip', lazy='joined')
 
-    #schdeuled relationship
+    # scheduled relationship
     SCHEDULED = 0
     ADDED = 1
     UNSCHEDULED = 2
     CANCELED = 3
+
     def to_dict(self):
         return {'trip_id': self.trip_id,
                 'time_recorded': self.time_recorded.isoformat(),
@@ -104,7 +116,7 @@ class StopDistance(db.Model):
     stop_id = db.Column(db.Integer, nullable=False)
     time_till_arrive = db.Column(db.Integer, nullable=False)
 
-    #schdeuled relationship
+    # schdeuled relationship
     SCHEDULED = 0
     SKIP = 1
     NO_DATA = 2

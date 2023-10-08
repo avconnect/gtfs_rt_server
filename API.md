@@ -55,7 +55,7 @@ Get list of all gtfs ids associated with a feed
 
 **Param** : `feed_id: int`
 
-**Example call** `/api/vehicles?feed=<x>`
+**Example call** `/api/vehicles?feed_id=<x>`
 
 **Example output** :
 
@@ -128,6 +128,41 @@ NOT_ACCEPTING_PASSENGERS = 6
 NO_DATA_AVAILABLE = 7
 NOT_BOARDABLE = 8
 None
+```
+
+## Get Recent Vehicle Positions
+
+Get the recent positions for all vehicle for a given feed
+
+**URL**: `/api/vehicle_positions/recent`
+
+**Param** :
+
+```
+feed_id: int
+day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
+```
+
+**Example Output**
+```json
+{
+  '1': {
+    'day': '2023-10-06',
+    'lat': 138.7902908325195,
+    'lon': -175.3717880249023,
+    'occupancy_status': 7,
+    'time_recorded': '2023-10-06T18:00:00',
+    'timestamp': '2023-10-06T17:59:45'
+  },
+  '2': {
+    'day': '2023-10-06',
+    'lat': 138.7278518676758,
+    'lon': -175.5925064086914,
+    'occupancy_status': 7,
+    'time_recorded': '2023-10-06T18:00:00',
+    'timestamp': '2023-10-06T17:59:45'
+  }
+}
 ```
 
 ## Get Trip Ids
@@ -211,7 +246,7 @@ Get all vehicles that ran a specific trip on a specific day
 
 ```
 feed_id: int
-trip_id: list of trip_id:str
+trip_id: [list of trip_id:str]
 day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
@@ -220,7 +255,7 @@ day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 param = {
     "feed_id": "int",
-    "trip_ids": "[trip_id_1,...]",
+    "trip_ids": "['trip_id_1', 'trip_id_2', ...]",
     "day": "YYYY-MM-DD"
 }
 requests.post(url, json=param)

@@ -35,4 +35,4 @@ def check_json_post_args(args_list):
     missing_args = [arg for arg in args_list if arg not in request.json.keys()]
     if len(missing_args) > 0:
         return {}, {"missing parameters": str(missing_args)}
-    return request.json, None
+    return True, None
