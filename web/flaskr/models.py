@@ -62,9 +62,12 @@ class VehiclePosition(db.Model):
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
     occupancy_status = db.Column(db.Integer, nullable=True, default=None)
-    time_recorded = db.Column(db.DateTime, nullable=False, default=(datetime.utcnow()).replace(microsecond=0))
-    timestamp = db.Column(db.DateTime, nullable=False)
+    time_recorded = db.Column(db.DateTime, nullable=False,
+                              default=(datetime.utcnow()).replace(microsecond=0),
+                              index=True)
+    timestamp = db.Column(db.DateTime, nullable=False, index=True)
     day = db.Column(db.Date, nullable=False, index=True)
+
     def to_dict(self):
         return {'lat': self.lat,
                 'lon': self.lon,
@@ -90,8 +93,10 @@ class TripRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # trip_record_id
     vehicle_id = db.Column(db.Integer, db.ForeignKey("gtfs_vehicles.id"), nullable=True)
     trip_id = db.Column(db.String(), nullable=False)
-    time_recorded = db.Column(db.DateTime, nullable=False, default=(datetime.utcnow()).replace(microsecond=0))
-    timestamp = db.Column(db.DateTime, nullable=False)
+    time_recorded = db.Column(db.DateTime, nullable=False,
+                              default=(datetime.utcnow()).replace(microsecond=0),
+                              index=True)
+    timestamp = db.Column(db.DateTime, nullable=False, index=True)
     day = db.Column(db.Date, nullable=False, index=True)
     stops = db.relationship('StopDistance', backref='trip', lazy='joined')
 

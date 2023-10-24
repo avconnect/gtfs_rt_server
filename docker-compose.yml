@@ -9,6 +9,8 @@ services:
       - db
     networks:
       - flask_network
+    volumes:
+      - ./web:/code
   proxy:
     build: proxy
     restart: unless-stopped
@@ -33,3 +35,4 @@ networks:
 
 volumes:
   postgres_data:
+  gtfs_app:

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from flask import Blueprint, request, jsonify
-from sqlalchemy import func
+from sqlalchemy import func, and_
 
 from .extensions import db
 from .models import Vehicles, Feed, VehiclePosition, TripRecord, StopDistance
@@ -93,7 +93,6 @@ def get_recent_positions():
     """"
     Usage: /api/positions/recent?feed_id=<id>&gtfs_id=<id>&day=<day>
     :param: feed_id: integer
-    :param: day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
     :return: list of most recent VehiclePositions
     """
     data, error = check_get_args([FEED_ID])
@@ -101,15 +100,18 @@ def get_recent_positions():
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
 
-    vehicle_ids = get_vehicle_ids(feed_id)
-    if vehicle_ids is None:
-        return jsonify({'success': False, 'message': f'feed does not exist'}), 404
+    sub_query = db.session.query(VehiclePosition.vehicle_id,
+                                 func.max(VehiclePosition.timestamp).label("max_timestamp")) \
+        .group_by(VehiclePosition.vehicle_id) \
+        .subquery()
 
-    positions = db.session.query(VehiclePosition) \
-        .distinct(VehiclePosition.vehicle_id) \
-        .filter(VehiclePosition.vehicle_id.in_(vehicle_ids)) \
-        .order_by(VehiclePosition.vehicle_id, VehiclePosition.timestamp.desc()) \
-        .all()
+    query = db.session.query(VehiclePosition) \
+        .join(sub_query,
+              and_(VehiclePosition.vehicle_id == sub_query.c.vehicle_id,
+                   VehiclePosition.timestamp == sub_query.c.max_timestamp)) \
+        .join(Vehicles, VehiclePosition.vehicle_id == Vehicles.id) \
+        .filter(Vehicles.feed_id == feed_id)
+    positions = query.all()
     data = {}
     for p in positions:
         data.update({p.vehicle.vehicle_gtfs_id: p.to_dict()})
@@ -144,7 +146,7 @@ def get_stops():
     """"
     Usage: /api/trip_update/stops/feed_id=<id>&gtfs_id=<id>&day=<day>
     :param: feed_id: integer
-    :param: gtfs_id: integer
+    :param: gtfs_id: string
     :param: day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
     :return: list of trip_ids and stops for a vehicle
     """
@@ -203,36 +205,38 @@ def get_trip_vehicles_segments():
     day_iso = request.json.get(DAY)
     day = date.fromisoformat(day_iso)
     vehicle_ids = vehicle_ids_to_gtfs_ids_mapped(feed_id)
-    data = []
-    for trip_id in trip_ids:
-        trip_vehicles = db.session.query(TripRecord.vehicle_id,
-                                         func.min(TripRecord.timestamp),
-                                         func.max(TripRecord.timestamp)) \
-            .filter(TripRecord.vehicle_id.in_(vehicle_ids.keys()),
-                    TripRecord.trip_id == trip_id,
-                    TripRecord.day == day) \
-            .group_by(TripRecord.vehicle_id).all()
-        segments = []
-        for vehicle in trip_vehicles:
-            gtfs_id = vehicle_ids.get(vehicle[0], None)
-            first_arrived_timestamp = vehicle[1].isoformat()
-            last_arrived_timestamp = vehicle[-1].isoformat()
-            segments.append({'gtfs_id': gtfs_id,
-                             'first_arrived_timestamp': first_arrived_timestamp,
-                             'last_arrive_timestamp': last_arrived_timestamp})
-        canceled_trips = db.session.query(TripRecord.timestamp) \
-            .filter_by(vehicle_id=None,
-                       trip_id=trip_id,
-                       day=day) \
-            .order_by(TripRecord.timestamp.asc()).all()
-        for trip in canceled_trips:
-            gtfs_id = None
-            first_arrived_timestamp = trip[0].isoformat()
-            last_arrived_timestamp = None
-            segments.append({'gtfs_id': gtfs_id,
-                             'first_arrived_timestamp': first_arrived_timestamp,
-                             'last_arrive_timestamp': last_arrived_timestamp})
-
-        data.append({'trip_id': trip_id, 'segments': segments})
-
+    data = list()
+    trip_data = db.session.query(TripRecord.trip_id, TripRecord.vehicle_id,
+                                 func.min(TripRecord.timestamp).label("first_timestamp"),
+                                 func.max(TripRecord.timestamp).label("last_timestamp")) \
+        .filter(TripRecord.vehicle_id.in_(vehicle_ids.keys()),
+                TripRecord.trip_id.in_(trip_ids),
+                TripRecord.day == day) \
+        .group_by(TripRecord.trip_id, TripRecord.vehicle_id) \
+        .order_by(TripRecord.trip_id).all()
+    prev_trip_id = None
+    for trip in trip_data:
+        trip_id = trip[0]
+        gtfs_id = vehicle_ids[trip[1]]
+        first_arrive_time = trip[2].isoformat()
+        last_arrive_time = trip[3].isoformat()
+        if prev_trip_id == trip_id:
+            data[-1]['segments'].append({
+                'gtfs_id': gtfs_id,
+                "first_arrive_time": first_arrive_time,
+                "last_arrive_time": last_arrive_time
+            })
+        else:
+            entry = {
+                'trip_id': trip_id,
+                'segments': [
+                    {
+                        'gtfs_id': gtfs_id,
+                        "first_arrive_time": first_arrive_time,
+                        "last_arrive_time": last_arrive_time
+                    }
+                ]
+            }
+            data.append(entry)
+        prev_trip_id = trip_id
     return jsonify({'data': data}), 200

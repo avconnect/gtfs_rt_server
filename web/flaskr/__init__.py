@@ -1,6 +1,14 @@
 import os
 from flask import Flask
 from .extensions import db, migrate, scheduler
+import logging
+
+'''
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
+logger = logging.getLogger(__name__)
+'''
 
 
 def create_app(config='config.ProductionConfig'):
@@ -13,8 +21,10 @@ def create_app(config='config.ProductionConfig'):
 
     def is_debug_mode():
         """Get app debug status."""
-        debug = app.config.get("FLASK_DEBUG", False)
-        return debug is True or app.debug
+        debug = os.environ.get("FLASK_DEBUG")
+        if not debug:
+            return app.debug
+        return debug.lower() not in ("0", "false", "no")
 
     def is_werkzeug_reloader_process():
         """Get werkzeug status."""
@@ -25,11 +35,12 @@ def create_app(config='config.ProductionConfig'):
         if is_debug_mode() and not is_werkzeug_reloader_process():
             pass
         else:
-            # scheduler.remove_all_jobs()
-            print('Scheduler Start')
-            from . import tasks  # noqa: F401
-            scheduler.start()
-            print()
+            if app.config.get('SCHEDULER_ENABLE', False):
+                # scheduler.remove_all_jobs()
+                print('SCHEDULER START')
+                from . import tasks  # noqa: F401
+                scheduler.start()
+                print()
 
         from . import companies
         app.register_blueprint(companies.bp)

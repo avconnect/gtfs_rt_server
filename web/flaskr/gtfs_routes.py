@@ -17,7 +17,7 @@ from .queries import get_vehicles, vehicle_ids_to_gtfs_ids_mapped
 error_log = current_app.config.get("ERROR_LOG", None)
 bp = Blueprint('gtfs_routes', __name__)
 
-MAX_PER_PAGE = 25
+MAX_PER_PAGE = 60
 PER_PAGE_DEFAULT = 10
 PAGE_DEFAULT = 1
 
@@ -27,7 +27,9 @@ def display_vehicles(feed_id):
     feed = db.session.query(Feed).filter_by(id=feed_id).first()
     if feed is None:
         abort(404, f"Feed id {feed_id} doesn't exist.")
-    vehicles = get_vehicles(feed_id)
+    vehicles = db.session.query(Vehicles.id, Vehicles.vehicle_gtfs_id)\
+        .filter_by(feed_id=feed_id)\
+        .order_by(Vehicles.vehicle_gtfs_id).all()
     return render_template('companies/vehicles.html', feed=feed, vehicles=vehicles, date=None)
 
 
@@ -41,9 +43,16 @@ def display_vehicle_summary(feed_id):
     page = request.form.get('page', 1, type=int)
     per_page = request.form.get('per_page', PER_PAGE_DEFAULT, type=int)
     if request.method == "POST":
+        '''data = db.session.query(Vehicles) \
+            .filter(Vehicles.feed_i == feed_id) \
+            .join(TripRecord, Vehicles.id == TripRecord.vehicle_id) \
+            .filter(TripRecord.trip_id.in_(trip_ids),
+                    TripRecord.day == requested_day)\
+            .order_by(TripRecord.timestamp.asc()).all()'''
+
         data = db.session.query(TripRecord.vehicle_id) \
             .filter(TripRecord.trip_id.in_(trip_ids), TripRecord.day == requested_day) \
-            .order_by(TripRecord.vehicle_id)\
+            .order_by(TripRecord.vehicle_id) \
             .distinct(TripRecord.vehicle_id) \
             .paginate(page=page, per_page=per_page, max_per_page=MAX_PER_PAGE, error_out=False)
         if data.items:
@@ -64,7 +73,8 @@ def display_vehicle_summary(feed_id):
                      'last_trip_end': trips[-1].timestamp.isoformat()})
             data.items = items
         trip_ids_str = ','.join(trip_ids)
-        return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips=trip_ids_str, data=data)
+        return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips=trip_ids_str,
+                               data=data)
     return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips="", data=None)
 
 
@@ -102,7 +112,7 @@ def get_vehicle_trip_updates(feed_id: id, vehicle_id: int):
     requested_day = request.form.get('date', datetime.now(pytz.timezone(feed.timezone)).date(), type=str)
     page = request.form.get('page', 1, type=int)
     per_page = request.form.get('per_page', PER_PAGE_DEFAULT, type=int)
-    data = TripRecord.query \
+    data = db.session.query(TripRecord) \
         .filter(TripRecord.vehicle_id == vehicle.id, TripRecord.day == requested_day) \
         .order_by(TripRecord.timestamp.desc(), TripRecord.trip_id.asc()) \
         .paginate(page=page, per_page=per_page, max_per_page=MAX_PER_PAGE, error_out=False)

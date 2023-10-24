@@ -11,14 +11,14 @@
 {% for v in vehicles %}
 <article class="data">
 
-    <h3>{{ v.vehicle_gtfs_id }}</h3>
+    <h3>{{ v[1] }}</h3>
 
     <div class="grid-container">
         <a class="action grid-item"
-           href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=feed.id, vehicle_id=v.id)}}">
+           href="{{url_for('gtfs_routes.get_vehicle_position', feed_id=feed.id, vehicle_id=v[0])}}">
             Vehicle Position Data </a>
         <a class="action grid-item"
-           href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=feed.id, vehicle_id=v.id)}}">
+           href="{{url_for('gtfs_routes.get_vehicle_trip_updates', feed_id=feed.id, vehicle_id=v[0])}}">
             Trip Update Data </a>
     </div>
 </article>
