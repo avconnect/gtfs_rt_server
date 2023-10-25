@@ -5,14 +5,12 @@ import pytz
 from flask import (
     Blueprint, current_app, abort, render_template, request
 )
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
-
-from pprint import pprint
+from sqlalchemy import func, and_
+from sqlalchemy.orm import aliased
 
 from .extensions import db
 from .models import Vehicles, Feed, VehiclePosition, TripRecord
-from .queries import get_vehicles, vehicle_ids_to_gtfs_ids_mapped
+from .queries import vehicle_ids_to_gtfs_ids_mapped
 
 error_log = current_app.config.get("ERROR_LOG", None)
 bp = Blueprint('gtfs_routes', __name__)
@@ -27,8 +25,8 @@ def display_vehicles(feed_id):
     feed = db.session.query(Feed).filter_by(id=feed_id).first()
     if feed is None:
         abort(404, f"Feed id {feed_id} doesn't exist.")
-    vehicles = db.session.query(Vehicles.id, Vehicles.vehicle_gtfs_id)\
-        .filter_by(feed_id=feed_id)\
+    vehicles = db.session.query(Vehicles.id, Vehicles.vehicle_gtfs_id) \
+        .filter_by(feed_id=feed_id) \
         .order_by(Vehicles.vehicle_gtfs_id).all()
     return render_template('companies/vehicles.html', feed=feed, vehicles=vehicles, date=None)
 
@@ -43,38 +41,57 @@ def display_vehicle_summary(feed_id):
     page = request.form.get('page', 1, type=int)
     per_page = request.form.get('per_page', PER_PAGE_DEFAULT, type=int)
     if request.method == "POST":
-        '''data = db.session.query(Vehicles) \
-            .filter(Vehicles.feed_i == feed_id) \
-            .join(TripRecord, Vehicles.id == TripRecord.vehicle_id) \
-            .filter(TripRecord.trip_id.in_(trip_ids),
-                    TripRecord.day == requested_day)\
-            .order_by(TripRecord.timestamp.asc()).all()'''
+        first_trip = aliased(TripRecord)
+        last_trip = aliased(TripRecord)
+        vehicle_ids = vehicle_ids_to_gtfs_ids_mapped(feed_id)
 
-        data = db.session.query(TripRecord.vehicle_id) \
-            .filter(TripRecord.trip_id.in_(trip_ids), TripRecord.day == requested_day) \
-            .order_by(TripRecord.vehicle_id) \
-            .distinct(TripRecord.vehicle_id) \
-            .paginate(page=page, per_page=per_page, max_per_page=MAX_PER_PAGE, error_out=False)
+        first_trip_subquery = db.session.query(
+            TripRecord.vehicle_id,
+            func.min(TripRecord.timestamp).label("first_timestamp")) \
+            .filter(TripRecord.vehicle_id.in_(vehicle_ids),
+                    TripRecord.day == requested_day) \
+            .group_by(TripRecord.vehicle_id).subquery()
+
+        last_trip_subquery = db.session.query(
+            TripRecord.vehicle_id,
+            func.max(TripRecord.timestamp).label("last_timestamp")
+        ).filter(
+            TripRecord.vehicle_id.in_(vehicle_ids),
+            TripRecord.day == requested_day
+        ).group_by(TripRecord.vehicle_id).subquery()
+
+        data = db.session.query(first_trip_subquery.c.vehicle_id,
+                                first_trip.trip_id,
+                                first_trip_subquery.c.first_timestamp,
+                                last_trip.trip_id,
+                                last_trip_subquery.c.last_timestamp) \
+            .join(last_trip_subquery, last_trip_subquery.c.vehicle_id == first_trip_subquery.c.vehicle_id) \
+            .join(first_trip,
+                  and_(first_trip.vehicle_id == first_trip_subquery.c.vehicle_id,
+                       first_trip.timestamp == first_trip_subquery.c.first_timestamp)) \
+            .join(last_trip,
+                  and_(last_trip.vehicle_id == last_trip_subquery.c.vehicle_id,
+                       last_trip.timestamp == last_trip_subquery.c.last_timestamp)) \
+            .order_by(first_trip_subquery.c.vehicle_id.asc()) \
+            .paginate(page=page,
+                      per_page=per_page,
+                      max_per_page=MAX_PER_PAGE,
+                      error_out=False)
         if data.items:
             items = []
-            gtfs_ids = vehicle_ids_to_gtfs_ids_mapped(feed_id)
-            for v_id in data.items:
-                gtfs_id = gtfs_ids.get(v_id[0], None)
-                trips = db.session.query(TripRecord) \
-                    .filter(TripRecord.vehicle_id == v_id[0],
-                            TripRecord.day == requested_day,
-                            TripRecord.trip_id.in_(trip_ids)) \
-                    .order_by(TripRecord.timestamp.asc()).all()
+            for entry in data.items:
+                gtfs_id = vehicle_ids.get(entry[0], None)
                 items.append(
                     {'gtfs_id': gtfs_id,
-                     'first_trip': trips[0].trip_id,
-                     'first_trip_start': trips[0].timestamp.isoformat(),
-                     'last_trip': trips[-1].trip_id,
-                     'last_trip_end': trips[-1].timestamp.isoformat()})
+                     'first_trip': entry[1],
+                     'first_trip_start': entry[2].isoformat(),
+                     'last_trip': entry[-2],
+                     'last_trip_end': entry[-1].isoformat()})
             data.items = items
         trip_ids_str = ','.join(trip_ids)
         return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips=trip_ids_str,
                                data=data)
+
     return render_template('gtfs/vehicle_summary.html', feed=feed, date=requested_day, trips="", data=None)
 
 
