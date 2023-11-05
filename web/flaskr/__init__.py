@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 '''
 
 
-def create_app(config='config.ProductionConfig'):
+def create_app(config='config.TestingConfig'):
     app = Flask(__name__)
     app.config.from_object(config)
     print(f'created app with config: {config}')

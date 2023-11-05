@@ -49,16 +49,17 @@ def display_vehicle_summary(feed_id):
             TripRecord.vehicle_id,
             func.min(TripRecord.timestamp).label("first_timestamp")) \
             .filter(TripRecord.vehicle_id.in_(vehicle_ids),
+                    TripRecord.trip_id.in_(trip_ids),
                     TripRecord.day == requested_day) \
             .group_by(TripRecord.vehicle_id).subquery()
 
         last_trip_subquery = db.session.query(
             TripRecord.vehicle_id,
             func.max(TripRecord.timestamp).label("last_timestamp")
-        ).filter(
-            TripRecord.vehicle_id.in_(vehicle_ids),
-            TripRecord.day == requested_day
-        ).group_by(TripRecord.vehicle_id).subquery()
+        ).filter(TripRecord.vehicle_id.in_(vehicle_ids),
+                 TripRecord.trip_id.in_(trip_ids),
+                 TripRecord.day == requested_day)\
+            .group_by(TripRecord.vehicle_id).subquery()
 
         data = db.session.query(first_trip_subquery.c.vehicle_id,
                                 first_trip.trip_id,
@@ -131,7 +132,7 @@ def get_vehicle_trip_updates(feed_id: id, vehicle_id: int):
     per_page = request.form.get('per_page', PER_PAGE_DEFAULT, type=int)
     data = db.session.query(TripRecord) \
         .filter(TripRecord.vehicle_id == vehicle.id, TripRecord.day == requested_day) \
-        .order_by(TripRecord.timestamp.desc(), TripRecord.trip_id.asc()) \
+        .order_by(TripRecord.timestamp.desc()) \
         .paginate(page=page, per_page=per_page, max_per_page=MAX_PER_PAGE, error_out=False)
     for i in range(len(data.items)):
         data.items[i].stops = sorted(data.items[i].stops, key=lambda x: x.time_till_arrive, reverse=True)

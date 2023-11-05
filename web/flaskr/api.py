@@ -39,6 +39,22 @@ def get_feed():
     return jsonify({'feed_id': feed[0]}), 200
 
 
+def get_feed_data():
+    """
+        Usage: /api/feed/company_name=<name>
+        :param: company_name: vehicle group
+        :return: the feed_id for a company
+        """
+    data, error = check_get_args([COMPANY_NAME])
+    if error:
+        return jsonify(error), 400
+    company_name = request.args.get(COMPANY_NAME, type=str).lower()
+    feed = db.session.query(Feed).filter_by(company_name=company_name).first()
+    if feed is None:
+        return jsonify({'success': False, 'message': f'company does not exist'}), 404
+    return jsonify({'data': feed.to_dict()}), 200
+
+
 @bp.route('/api/vehicles', methods=['GET'])
 def get_vehicles_gtfs_ids():
     """"
@@ -99,19 +115,22 @@ def get_recent_positions():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-
+    vehicles = get_vehicle_ids(feed_id)
+    #
     sub_query = db.session.query(VehiclePosition.vehicle_id,
                                  func.max(VehiclePosition.timestamp).label("max_timestamp")) \
         .group_by(VehiclePosition.vehicle_id) \
         .subquery()
 
-    query = db.session.query(VehiclePosition) \
-        .join(sub_query,
-              and_(VehiclePosition.vehicle_id == sub_query.c.vehicle_id,
-                   VehiclePosition.timestamp == sub_query.c.max_timestamp)) \
-        .join(Vehicles, VehiclePosition.vehicle_id == Vehicles.id) \
-        .filter(Vehicles.feed_id == feed_id)
-    positions = query.all()
+    #query = db.session.query(VehiclePosition) \
+    ##    .join(sub_query,
+     #         and_(VehiclePosition.vehicle_id == sub_query.c.vehicle_id,
+     #              VehiclePosition.timestamp == sub_query.c.max_timestamp)) \
+     #   .join(Vehicles, VehiclePosition.vehicle_id == Vehicles.id) \
+     #   .filter(VehiclePosition.vehicle_id.in_(vehicles))
+    positions = db.session.query(VehiclePosition, func.max(VehiclePosition.timestamp).label("max_timestamp"))\
+                    .group_by(VehiclePosition.vehicle_id)\
+                    .filter(VehiclePosition.vehicle_id.in_(vehicles)).all()
     data = {}
     for p in positions:
         data.update({p.vehicle.vehicle_gtfs_id: p.to_dict()})
