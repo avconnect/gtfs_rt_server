@@ -101,7 +101,34 @@ def get_positions():
     for p in positions:
         data.append({p.timestamp.isoformat(): p.to_dict()})
 
+    @bp.route('/api/vehicle_positions/recent/single', methods=['GET'])
+    def get_recent_position():
+        """"
+        Usage: /api/vehicle_positions/recent/single?feed_id=<id>&gtfs_id=<id>
+        :param: feed_id: integer
+        :param: gtfs_id: integer
+        :return: Single VehiclePosition
+        """
+        data, error = check_get_args([FEED_ID, GTFS_ID])
+        if error:
+            return jsonify(error), 400
+        feed_id = request.args.get(FEED_ID, type=int)
+        gtfs_id = request.args.get(GTFS_ID, type=str)
+        vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
+        if vehicle is None:
+            return jsonify({'success': False, 'message': f'vehicle does not exist'}), 404
+
+        data = []
+        position = db.session.query(VehiclePosition) \
+            .filter_by(vehicle_id=vehicle.id) \
+            .order_by(VehiclePosition.timestamp.desc()).first()
+        for p in position:
+            data.append({p.timestamp.isoformat(): p.to_dict()})
+
     return jsonify({'data': data}), 200
+
+
+"SLOW"
 
 
 @bp.route('/api/vehicle_positions/recent', methods=['GET'])
@@ -116,21 +143,17 @@ def get_recent_positions():
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
     vehicles = get_vehicle_ids(feed_id)
-    #
     sub_query = db.session.query(VehiclePosition.vehicle_id,
                                  func.max(VehiclePosition.timestamp).label("max_timestamp")) \
         .group_by(VehiclePosition.vehicle_id) \
         .subquery()
 
-    #query = db.session.query(VehiclePosition) \
-    ##    .join(sub_query,
-     #         and_(VehiclePosition.vehicle_id == sub_query.c.vehicle_id,
-     #              VehiclePosition.timestamp == sub_query.c.max_timestamp)) \
-     #   .join(Vehicles, VehiclePosition.vehicle_id == Vehicles.id) \
-     #   .filter(VehiclePosition.vehicle_id.in_(vehicles))
-    positions = db.session.query(VehiclePosition, func.max(VehiclePosition.timestamp).label("max_timestamp"))\
-                    .group_by(VehiclePosition.vehicle_id)\
-                    .filter(VehiclePosition.vehicle_id.in_(vehicles)).all()
+    query = db.session.query(VehiclePosition) \
+        .join(sub_query,
+              and_(VehiclePosition.vehicle_id == sub_query.c.vehicle_id,
+                   VehiclePosition.timestamp == sub_query.c.max_timestamp)) \
+        .filter(VehiclePosition.vehicle_id.in_(vehicles))
+    positions = query.all()
     data = {}
     for p in positions:
         data.update({p.vehicle.vehicle_gtfs_id: p.to_dict()})
