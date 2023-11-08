@@ -102,33 +102,6 @@ def get_positions():
         data.append({p.timestamp.isoformat(): p.to_dict()})
 
 
-'''@bp.route('/api/vehicle_positions/recent/single', methods=['GET'])
-def get_recent_position():
-    """"
-    Usage: /api/vehicle_positions/recent/single?feed_id=<id>&gtfs_id=<id>
-    :param: feed_id: integer
-    :param: gtfs_id: integer
-    :return: Single VehiclePosition
-    """
-    data, error = check_get_args([FEED_ID, GTFS_ID])
-    if error:
-        return jsonify(error), 400
-    feed_id = request.args.get(FEED_ID, type=int)
-    gtfs_id = request.args.get(GTFS_ID, type=str)
-    vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
-    if vehicle is None:
-        return jsonify({'success': False, 'message': f'vehicle does not exist'}), 404
-
-    data = []
-    position = db.session.query(VehiclePosition) \
-        .filter_by(vehicle_id=vehicle.id) \
-        .order_by(VehiclePosition.timestamp.desc()).first()
-    for p in position:
-        data.append({p.timestamp.isoformat(): p.to_dict()})
-
-    return jsonify({'data': data}), 200
-
-'''
 "SLOW"
 
 
@@ -149,9 +122,6 @@ def get_recent_positions():
               VehiclePosition.vehicle_id == LatestRecords.vehicle_id) \
         .filter(VehiclePosition.vehicle_id.in_(vehicles))
 
-    # query = db.session.query(LatestRecords.vehicle_position_id).filter(LatestRecords.vehicle_id.in_(vehicles)).all()
-    # position_ids = [pos[0] for pos in query]
-    # positions = db.session.query(VehiclePosition).filter(VehiclePosition.vehicle_id.in_(position_ids)).all()
     positions = query.all()
     data = {}
     for p in positions:
