@@ -121,7 +121,7 @@ class StopDistance(db.Model):
     stop_id = db.Column(db.Integer, nullable=False)
     time_till_arrive = db.Column(db.Integer, nullable=False)
 
-    # schdeuled relationship
+    # scheduled relationship
     SCHEDULED = 0
     SKIP = 1
     NO_DATA = 2
@@ -130,3 +130,13 @@ class StopDistance(db.Model):
         return {'trip_record_id': self.trip_record_id,
                 'stop_id': self.stop_id,
                 'time_till_arrive': self.time_till_arrive}
+
+
+# LAtest Records- positions and trips
+class LatestRecords(db.Model):
+    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'latest_records'
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey("gtfs_vehicles.id"), unique=True, nullable=False)
+    vehicle_position_id = db.Column(db.Integer, db.ForeignKey("vehicle_position.id"), nullable=True)
+    trip_record_id = db.Column(db.Integer, db.ForeignKey("trip_record.id"), nullable=True)

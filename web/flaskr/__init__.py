@@ -3,12 +3,10 @@ from flask import Flask
 from .extensions import db, migrate, scheduler
 import logging
 
-'''
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
 
 logger = logging.getLogger(__name__)
-'''
 
 
 def create_app(config='config.TestingConfig'):
@@ -31,7 +29,6 @@ def create_app(config='config.TestingConfig'):
         return os.environ.get("WERKZEUG_RUN_MAIN") == "true"
 
     with app.app_context():
-        # pylint: disable=W0611
         if is_debug_mode() and not is_werkzeug_reloader_process():
             pass
         else:
