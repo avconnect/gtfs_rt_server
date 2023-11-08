@@ -100,7 +100,7 @@ def get_positions():
         .order_by(VehiclePosition.timestamp.asc()).all()
     for p in positions:
         data.append({p.timestamp.isoformat(): p.to_dict()})
-
+    return jsonify({'data': data}), 200
 
 "SLOW"
 
