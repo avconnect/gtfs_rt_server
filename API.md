@@ -130,6 +130,41 @@ NOT_BOARDABLE = 8
 None
 ```
 
+## Get Recent Vehicle Position
+
+Get the recent position for a single vehicle
+
+**URL**: `/api/vehicle_position/recent`
+
+**Param** :
+
+```
+feed_id: int
+gtfs_id: int
+```
+
+**Example Output**
+```json
+{
+  '1': {
+    'day': '2023-10-06',
+    'lat': 138.7902908325195,
+    'lon': -175.3717880249023,
+    'occupancy_status': 7,
+    'time_recorded': '2023-10-06T18:00:00',
+    'timestamp': '2023-10-06T17:59:45'
+  },
+  '2': {
+    'day': '2023-10-06',
+    'lat': 138.7278518676758,
+    'lon': -175.5925064086914,
+    'occupancy_status': 7,
+    'time_recorded': '2023-10-06T18:00:00',
+    'timestamp': '2023-10-06T17:59:45'
+  }
+}
+```
+
 ## Get Recent Vehicle Positions
 
 Get the recent positions for all vehicle for a given feed
@@ -140,7 +175,6 @@ Get the recent positions for all vehicle for a given feed
 
 ```
 feed_id: int
-day: YYYY-MM-DD iso-8601 date, local to vehicle timezone
 ```
 
 **Example Output**

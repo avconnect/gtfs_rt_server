@@ -46,8 +46,9 @@ class Vehicles(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     feed_id = db.Column(db.Integer, db.ForeignKey('gtfs_feeds.id'), nullable=False)
     vehicle_gtfs_id = db.Column(db.Integer, nullable=False)
-    trips = db.relationship('TripRecord', backref=db.backref('vehicle', lazy='joined'))
+
     positions = db.relationship('VehiclePosition', backref=db.backref('vehicle', lazy='joined'))
+    trips = db.relationship('TripRecord', backref=db.backref('vehicle', lazy='joined'))
 
     def to_dict(self):
         return {'feed_id': self.feed_id,
@@ -132,7 +133,6 @@ class StopDistance(db.Model):
                 'time_till_arrive': self.time_till_arrive}
 
 
-# LAtest Records- positions and trips
 class LatestRecords(db.Model):
     __table_args__ = {'extend_existing': True}
     __tablename__ = 'latest_records'

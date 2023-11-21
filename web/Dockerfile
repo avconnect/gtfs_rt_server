@@ -12,9 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000
 
 #Debug
-# change run app to point to debug app
-CMD python run.py
+# CMD python run.py
 
 # Prod
-# change run app to point to production app
-# CMD gunicorn --bind 0.0.0.0:5000 -w 1 run:gunicorn_app
+CMD gunicorn --bind 0.0.0.0:5000 -w 1 run:gunicorn_app

@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from pprint import pprint
 
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, and_
@@ -87,7 +88,7 @@ def get_positions():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-    gtfs_id = request.args.get(GTFS_ID, type=str)
+    gtfs_id = request.args.get(GTFS_ID, type=int)
     day_iso = request.args.get(DAY, type=str)
     day = date.fromisoformat(day_iso)
     vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
@@ -101,6 +102,7 @@ def get_positions():
     for p in positions:
         data.append({p.timestamp.isoformat(): p.to_dict()})
     return jsonify({'data': data}), 200
+
 
 "SLOW"
 
@@ -119,14 +121,36 @@ def get_recent_positions():
     vehicles = get_vehicle_ids(feed_id)
     query = db.session.query(VehiclePosition) \
         .join(LatestRecords,
-              VehiclePosition.vehicle_id == LatestRecords.vehicle_id) \
+              VehiclePosition.id == LatestRecords.vehicle_position_id) \
         .filter(VehiclePosition.vehicle_id.in_(vehicles))
-
     positions = query.all()
     data = {}
     for p in positions:
         data.update({p.vehicle.vehicle_gtfs_id: p.to_dict()})
     return jsonify({'data': data}), 200
+
+
+@bp.route('/api/vehicle_position/recent', methods=['GET'])
+def get_recent_position():
+    """"
+    Usage: /api/position/recent?feed_id=<id>&gtfs_id=<id>&day=<day>
+    :param: feed_id: integer
+    :param: gtfs_id: integer
+    :return: most recent VehiclePositions
+    """
+    data, error = check_get_args([FEED_ID, GTFS_ID])
+    if error:
+        return jsonify(error), 400
+    feed_id = request.args.get(FEED_ID, type=int)
+    gtfs_id = request.args.get(GTFS_ID, type=int)
+    vehicle = db.session.query(Vehicles).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
+    if not vehicle:
+        return jsonify({'success': False, 'message': f'vehicle does not exist'}), 404
+    query = db.session.query(VehiclePosition) \
+        .filter(VehiclePosition.vehicle_id == vehicle.id) \
+        .order_by(VehiclePosition.timestamp.desc())
+    position = query.first()
+    return jsonify({'data': position.to_dict()}), 200
 
 
 @bp.route('/api/trip_update/trip_ids', methods=['GET'])
@@ -165,7 +189,7 @@ def get_stops():
     if error:
         return jsonify(error), 400
     feed_id = request.args.get(FEED_ID, type=int)
-    gtfs_id = request.args.get(GTFS_ID, type=str)
+    gtfs_id = request.args.get(GTFS_ID, type=int)
     day_iso = request.args.get(DAY, type=str)
     day = date.fromisoformat(day_iso)
     vehicle_id = db.session.query(Vehicles.id).filter_by(feed_id=feed_id, vehicle_gtfs_id=gtfs_id).first()
