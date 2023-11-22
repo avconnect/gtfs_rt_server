@@ -120,9 +120,9 @@ def get_recent_positions():
     feed_id = request.args.get(FEED_ID, type=int)
     vehicles = get_vehicle_ids(feed_id)
     query = db.session.query(VehiclePosition) \
+        .filter(VehiclePosition.vehicle_id.in_(vehicles)) \
         .join(LatestRecords,
-              VehiclePosition.id == LatestRecords.vehicle_position_id) \
-        .filter(VehiclePosition.vehicle_id.in_(vehicles))
+              VehiclePosition.id == LatestRecords.vehicle_position_id)
     positions = query.all()
     data = {}
     for p in positions:

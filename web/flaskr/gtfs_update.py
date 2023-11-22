@@ -67,6 +67,7 @@ def update_vehicle_position(feed_id, time_recorded=datetime.utcnow().replace(mic
 
         gtfs_id_list = gtfs_ids_to_vehicle_ids_mapped(feed_id)
         rows_added = 0
+        last_records_updated = 0
         for entity in feed.entity:
             error = None
             if not entity.HasField('vehicle'):
@@ -106,13 +107,15 @@ def update_vehicle_position(feed_id, time_recorded=datetime.utcnow().replace(mic
             # update latest record
             exists = db.session.query(LatestRecords).filter(LatestRecords.vehicle_id == vehicle_id).first()
             if exists is not None:
-                exists.vehicle_position = pos.id
+                exists.vehicle_position_id = pos.id
+                last_records_updated += 1
             else:
                 exists = LatestRecords()
                 exists.vehicle_id = vehicle_id
                 exists.vehicle_position_id = pos.id
                 db.session.add(exists)
         print(f'Feed: {error_source} | {rows_added} positions added')
+        print(f'Last Records updated: {last_records_updated}')
         db.session.commit()
 
 
